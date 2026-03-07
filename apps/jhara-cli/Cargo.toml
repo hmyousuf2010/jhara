@@ -1,0 +1,12 @@
+[package]
+name = "jhara-cli"
+version = "0.1.0"
+edition = "2021"
+authors = ["H.M. Yousuf"]
+
+[dependencies]
+jhara-core = { path = "../../crates/jhara-core" }
+clap = { version = "4", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
+chrono = "0.4"
+indicatif = "0.17"
