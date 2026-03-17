@@ -1,0 +1,13 @@
+[package]
+name    = "jhara-macos-ffi"
+version = "0.1.0"
+edition = "2021"
+
+# Produce a C-compatible static library for Xcode.
+[lib]
+name       = "jhara_macos_ffi"
+crate-type = ["staticlib"]
+
+[dependencies]
+jhara-core = { path = "../jhara-core" }
+
