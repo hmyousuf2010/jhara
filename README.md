@@ -1,6 +1,6 @@
 <div align="center">
   <h1>Jhara (ঝরা)</h1>
-  <p><b>A developer disk cleaner that understands your projects — native macOS, cross-platform core.</b></p>
+  <p><b>A disk cleaner for developers that actually understands what it's looking at.</b></p>
 
   [![Status](https://img.shields.io/badge/Status-Pre--Alpha%20%2F%20Under%20Development-red.svg)](#development-status)
   [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg?logo=apache)](LICENSE)
@@ -17,71 +17,71 @@
   <br />
 </div>
 
-Jhara is a developer disk cleaner built around one idea: a developer's disk fills up in predictable, structured ways, and a tool that understands those patterns can clean it safely. Where a general-purpose disk manager sees an opaque directory tree, Jhara sees a Rust project with a stale `target/` folder, a Node monorepo with hoisted `node_modules`, or an Xcode workspace accumulating DerivedData for two years.
+Jhara is a disk cleaner built on one idea: developer disks fill up in predictable, structured ways. A tool that understands those patterns can clean safely. Where a general disk analyzer sees an opaque directory tree, Jhara sees a Rust project with a stale `target/` folder, a Node monorepo with hoisted `node_modules`, or an Xcode workspace accumulating DerivedData for two years.
 
-The name comes from the Bengali word ঝরা, meaning to shed or fall away — like leaves falling from a tree at the end of a season. Files you no longer need, discarded cleanly.
+The name comes from the Bengali word ঝরা, meaning to shed or fall away. Like leaves at the end of a season.
 
-> **Status:** Jhara is in early development. The monorepo scaffold, web dashboard structure, and macOS app shell exist. The Rust core and scanner engine are under active development. If you are here for the tool, check back in a few months. If you are here to contribute, the roadmap describes exactly what needs to be done.
+> **Status:** Early development. The monorepo scaffold, web dashboard, and macOS app shell exist. The Rust core is under active development. If you're here to use the tool, check back in a few months. If you're here to contribute, the roadmap says exactly what needs doing.
 
 
-## Table of Contents
+## Table of contents
 
-- [Why Jhara Exists](#why-jhara-exists)
-- [How It Works](#how-it-works)
+- [Why Jhara exists](#why-jhara-exists)
+- [How it works](#how-it-works)
 - [Architecture](#architecture)
-- [Ecosystem Coverage](#ecosystem-coverage)
-- [Development Status](#development-status)
-- [Planned Usage](#planned-usage)
-- [Building from Source](#building-from-source)
-- [Project Structure](#project-structure)
-- [Design Decisions](#design-decisions)
-- [Distribution Model](#distribution-model)
+- [Ecosystem coverage](#ecosystem-coverage)
+- [Development status](#development-status)
+- [Planned usage](#planned-usage)
+- [Building from source](#building-from-source)
+- [Project structure](#project-structure)
+- [Design decisions](#design-decisions)
+- [Distribution model](#distribution-model)
 - [Contributing](#contributing)
 - [License](#license)
 - [Acknowledgements](#acknowledgements)
 
 
-## Why Jhara Exists
+## Why Jhara exists
 
-If you have been writing software long enough, you know the feeling. You open storage settings, look at the bar, and wonder how 256 gigabytes disappeared. The culprits are not mysterious. `~/.cargo/registry` grows every time you fetch a new crate. Xcode DerivedData accumulates a separate build cache for every project you have ever opened. The `node_modules` directory in a project you abandoned eight months ago still sits on your SSD, fully intact.
+If you've been writing software long enough, you know the feeling. You open storage settings, look at the bar, and wonder how 256 GB disappeared. The culprits aren't mysterious. `~/.cargo/registry` grows every time you fetch a new crate. Xcode DerivedData builds up a separate cache for every project you've ever opened. The `node_modules` directory in a project you abandoned eight months ago still sits on your SSD, fully intact.
 
-The problem is not that these files are hard to delete. It is that it is hard to know which ones are safe to delete. A naive approach — just deleting all `target/` directories — will break a project currently compiling in the background. Deleting the wrong Docker volume destroys a local database that took two hours to seed.
+The problem isn't that these files are hard to delete. It's that it's hard to know which ones are safe to delete. A naive approach, just deleting all `target/` directories, will break a project currently compiling in the background. Deleting the wrong Docker volume destroys a local database that took two hours to seed.
 
-Existing tools fall into two categories. General disk analyzers like DaisyDisk are excellent at showing you what is large, but they have no understanding of what any of it means from a development perspective. Dedicated cleaners like CleanMyMac are subscription products with a business model the developer community has consistently rejected, and their closed-source nature makes it impossible to trust them with full disk access on a machine full of source code and secrets.
+Existing tools split into two camps. General disk analyzers like DaisyDisk are excellent at showing you what's large, but they have no idea what any of it means from a development perspective. Dedicated cleaners like CleanMyMac are subscription products with a business model the developer community has consistently rejected. And their closed-source nature makes it hard to trust them with full disk access on a machine full of source code and secrets.
 
-Jhara is built on three principles. First, understand the domain: every artifact is classified by how easy it is to recover, not just how large it is. Second, be conservative: default to doing nothing, require explicit confirmation before touching anything outside the safest tier. Third, be transparent: the tool is open source, so you can read exactly what it does before granting it access to your filesystem.
+Jhara is built on three things. First, understand the domain: every artifact gets classified by how easy it is to recover, not just how large it is. Second, be conservative: do nothing by default, require explicit confirmation before touching anything outside the safest tier. Third, be transparent: the tool is open source, so you can read exactly what it does before giving it access to your filesystem.
 
 
-## How It Works
+## How it works
 
-Jhara uses a three-layer approach to go from a raw filesystem scan to a safe, actionable cleanup report.
+Jhara uses three layers to go from a raw filesystem scan to an actionable cleanup report.
 
-### Layer 1: Project Detection
+### Layer 1: project detection
 
-The scanner core is written in Rust, using `jwalk` for parallel filesystem traversal with rayon-based concurrency. On macOS, before the Rust scanner starts, a thin Swift layer pre-scans directories using `URLResourceKey.isUbiquitousItemKey` to detect iCloud-managed paths and passes a skip-list to the Rust core. This prevents the scanner from triggering dataless file hydration on iCloud Drive directories — a silent, destructive side effect that a pure-Rust traversal cannot guard against.
+The scanner core is written in Rust, using `jwalk` for parallel filesystem traversal with rayon-based concurrency. On macOS, before the Rust scanner starts, a Swift layer pre-scans directories using `URLResourceKey.isUbiquitousItemKey` to detect iCloud-managed paths and passes a skip-list to the Rust core. This prevents the scanner from triggering dataless file hydration on iCloud Drive directories, which is a silent, destructive side effect a pure-Rust traversal can't guard against.
 
-The scanner looks for project signature files — `package.json`, `Cargo.toml`, `go.mod`, `build.gradle`, `Package.swift`, and others — to identify project boundaries and maps each project to its known artifact directories.
+The scanner looks for project signature files: `package.json`, `Cargo.toml`, `go.mod`, `build.gradle`, `Package.swift`, and others. These identify project boundaries and map each project to its known artifact directories.
 
-### Layer 2: Safety Classification
+### Layer 2: safety classification
 
-Every artifact directory gets assigned to one of three tiers before anything else happens.
+Every artifact directory gets a tier before anything else happens.
 
-**Safe** directories are ephemeral artifacts that any build tool will regenerate automatically. `node_modules/`, Cargo's `target/`, Go's module cache, pip's download cache: all fall into this tier. You can delete them today and they come back the next time you run your build command.
+**Safe** directories are ephemeral artifacts any build tool will regenerate. `node_modules/`, Cargo's `target/`, Go's module cache, pip's download cache. You can delete them today and they come back next time you run your build command.
 
-**Caution** directories contain artifacts that are expensive to recreate or contain historical data with real value. Xcode Archives are a good example. Deleting them does not affect your source code, but it means you can no longer re-symbolicate crash reports from older releases. Conda environments with manually installed packages also fall here.
+**Caution** directories contain artifacts that are expensive to recreate or have historical value. Xcode Archives are a good example. Deleting them doesn't affect your source code, but it means you can't re-symbolicate crash reports from older releases. Conda environments with manually installed packages also land here.
 
-**Risky** directories contain state that cannot be recovered from a version control checkout. Docker volumes, Terraform state files, Vagrant machine metadata: these require explicit, per-item confirmation regardless of how old they are.
+**Risky** directories contain state you can't recover from a version control checkout. Docker volumes, Terraform state files, Vagrant machine metadata. These require explicit, per-item confirmation regardless of how old they are.
 
-### Layer 3: Staleness Analysis
+### Layer 3: staleness analysis
 
-Size alone is a poor metric for cleanup priority. A 10 GB `target/` directory in a project you are actively working on should not be touched. The same directory in a project you abandoned a year ago is fair game. Jhara determines staleness by looking at the modification time of the project's root descriptor file and the `.git/HEAD` file. If both are older than a configurable threshold (90 days by default), the project is classified as inactive.
+Size alone is a poor metric for cleanup priority. A 10 GB `target/` directory in a project you're actively working on shouldn't be touched. The same directory in a project you abandoned a year ago is fair game. Jhara determines staleness by looking at the modification time of the project's root descriptor file and the `.git/HEAD` file. If both are older than a configurable threshold (90 days by default), the project is classified as inactive.
 
-One important note: `kMDItemLastUsedDate` — the Spotlight metadata attribute that tracks when a file was last opened — is only updated when a user opens a file through a GUI application. Running `cargo build` or `npm install` in the terminal updates no Spotlight metadata whatsoever. Jhara does not use it.
+One note worth making: `kMDItemLastUsedDate`, the Spotlight metadata attribute tracking when a file was last opened, only updates when you open a file through a GUI app. Running `cargo build` or `npm install` in the terminal updates no Spotlight metadata. Jhara doesn't use it.
 
 
 ## Architecture
 
-Jhara is structured as a monorepo with a Rust core library, a native macOS application, a cross-platform Tauri application for Linux and Windows, a TypeScript server, and a Next.js web dashboard.
+Jhara is a monorepo with a Rust core library, a native macOS app, a cross-platform Tauri app for Linux and Windows, a TypeScript server, and a Next.js web dashboard.
 
 ```
 jhara/
@@ -93,18 +93,18 @@ jhara/
 ├── apps/
 │   ├── macos/               Native macOS app (Swift 6, SwiftUI)
 │   │   └── jhara/
-│   │       ├── Scanner/     iCloudGuard, FSEventsMonitor, DiskUsageReporter (macOS-only)
+│   │       ├── Scanner/     iCloudGuard, FSEventsMonitor, DiskUsageReporter
 │   │       ├── UI/          SwiftUI views, NSStatusItem, treemap
 │   │       ├── Automation/  SMAppService background agent
 │   │       └── Cleaner/     TrashCoordinator, GitSafetyCheck
 │   │
-│   ├── tauri/               Tauri v2 app — Linux and Windows only
+│   ├── tauri/               Tauri v2 app, Linux and Windows only
 │   │   ├── next.config.mjs  output: 'export', static build for WebView
 │   │   ├── src/             Next.js frontend (React)
 │   │   └── src-tauri/       Rust backend, calls jhara-core directly (no FFI)
 │   │
-│   ├── server/              TypeScript server (Hono, tRPC) — license validation
-│   └── web/                 Next.js web dashboard — license portal
+│   ├── server/              TypeScript server (Hono, tRPC), license validation
+│   └── web/                 Next.js web dashboard, license portal
 │
 └── packages/
     ├── api/                 tRPC router definitions
@@ -115,30 +115,30 @@ jhara/
     └── config/              Shared TypeScript configuration
 ```
 
-### Core Separation
+### Core separation
 
-**jhara-core (Rust)** contains everything that has no platform-specific dependency: the filesystem traversal engine (`jwalk` + rayon), inode-based deduplication (`HashSet<(u64, u64)>`), path-segment interned scan tree (`ustr` + `Vec<TreeNode>`), ecosystem detection map (80+ project types), safety classifier, staleness checker, and deletion engine. It exposes a C FFI surface generated by `cbindgen`.
+`jhara-core` (Rust) has everything with no platform-specific dependency: the filesystem traversal engine (`jwalk` + rayon), inode-based deduplication (`HashSet<(u64, u64)>`), path-segment interned scan tree (`ustr` + `Vec<TreeNode>`), ecosystem detection map (80+ project types), safety classifier, staleness checker, and deletion engine. It exposes a C FFI surface generated by `cbindgen`.
 
-**macOS Swift layer** is a thin orchestration shell. It does three things that Rust cannot: pre-scan directories for iCloud Drive status using `URLResourceKey.isUbiquitousItemKey`, listen for filesystem changes with FSEvents and trigger targeted Rust re-scans, and query `volumeAvailableCapacityForImportantUsage` for accurate free space reporting. Everything else — UI, automation scheduling via `SMAppService`, Keychain storage, Sparkle updates — lives here as well.
+The macOS Swift layer is a thin orchestration shell. It does three things Rust can't: pre-scan directories for iCloud Drive status using `URLResourceKey.isUbiquitousItemKey`, listen for filesystem changes with FSEvents and trigger targeted Rust re-scans, and query `volumeAvailableCapacityForImportantUsage` for accurate free space. Everything else, UI, automation via `SMAppService`, Keychain storage, Sparkle updates, lives here too.
 
-**Tauri app (Linux/Windows)** calls `jhara-core` directly from its Rust backend process. No FFI boundary: the same crate, called natively. The Next.js frontend communicates with the backend via Tauri commands and receives scan progress as batched events.
+The Tauri app (Linux and Windows) calls `jhara-core` directly from its Rust backend. No FFI boundary: the same crate, called natively. The Next.js frontend talks to the backend via Tauri commands and receives scan progress as batched events.
 
-This means the scanner logic is written exactly once, in Rust, and tested once. The macOS and Linux/Windows platforms share identical scanning behavior and ecosystem coverage.
+The scanner logic is written once, in Rust, and tested once. macOS and Linux/Windows share identical scanning behavior and ecosystem coverage.
 
-### Why Not Tauri on macOS
+### Why not Tauri on macOS
 
-The macOS application uses Swift for three reasons that cannot be solved in Tauri. First, `URLResourceKey.isUbiquitousItemKey` is an Apple CoreServices API — there is no Rust equivalent, and using `objc2` to bridge it from Rust is fragile across macOS updates. Second, `SMAppService` (the background automation API) integrates with System Settings under General > Login Items; this is only achievable through Swift's `ServiceManagement` framework. Third, `NSStatusItem` and the SwiftUI panel behavior expected from a macOS menu bar app is significantly more polished using native APIs than through Tauri's tray abstraction.
+The macOS app uses Swift for reasons you can't solve in Tauri. `URLResourceKey.isUbiquitousItemKey` is an Apple CoreServices API with no Rust equivalent, and bridging it via `objc2` breaks across macOS updates. `SMAppService` integrates with System Settings under General > Login Items, which only works through Swift's `ServiceManagement` framework. And `NSStatusItem` with the panel behavior expected from a macOS menu bar app is significantly more polished in native Swift than through Tauri's tray abstraction.
 
-Tauri is used where it excels: Linux and Windows, where there are no deep system APIs to call, and where a single codebase covering both platforms is a meaningful simplification.
+Tauri is used where it actually makes sense: Linux and Windows, where there are no deep system APIs to call and one codebase covering both platforms is a real win.
 
 
-## Ecosystem Coverage
+## Ecosystem coverage
 
-Jhara understands artifacts produced by the following ecosystems. The full detection map lives in `jhara-core` and is shared across all platforms.
+Jhara understands artifacts from the following ecosystems. The full detection map lives in `jhara-core` and is shared across all platforms.
 
-### Languages and Runtimes
+### Languages and runtimes
 
-| Ecosystem | Global Cache | Project Artifacts | Safety |
+| Ecosystem | Global cache | Project artifacts | Safety |
 |-----------|-------------|-------------------|--------|
 | Node.js | `~/.npm/_cacache/` | `node_modules/`, `node_modules/.cache/` | Safe |
 | Bun | `~/.bun/install/cache/` | `node_modules/` | Safe |
@@ -158,23 +158,23 @@ Jhara understands artifacts produced by the following ecosystems. The full detec
 | Haskell | `~/.stack/`, `~/.cabal/` | `.stack-work/` | Safe |
 | Zig | `~/.cache/zig/` | `zig-cache/`, `zig-out/` | Safe |
 
-### Mobile Development
+### Mobile development
 
-| Ecosystem | Artifact Paths | Safety | Typical Size |
+| Ecosystem | Artifact paths | Safety | Typical size |
 |-----------|---------------|--------|-------------|
-| Xcode / SwiftUI | `~/Library/Developer/Xcode/DerivedData/` | Safe | 5–50 GB |
-| iOS Simulator Runtimes | `~/Library/Developer/CoreSimulator/Caches/` | Caution | 5–20 GB |
+| Xcode / SwiftUI | `~/Library/Developer/Xcode/DerivedData/` | Safe | 5-50 GB |
+| iOS Simulator Runtimes | `~/Library/Developer/CoreSimulator/Caches/` | Caution | 5-20 GB |
 | Xcode Archives | `~/Library/Developer/Xcode/Archives/` | Caution | Variable |
-| Android (Gradle) | `~/.gradle/caches/`, `.cxx/`, `build/` | Safe | 5–20 GB |
-| React Native | `android/app/build/`, `ios/Pods/` | Safe | 2–8 GB |
-| Flutter | `.dart_tool/`, `build/`, `ios/Pods/` | Safe | 1–5 GB |
+| Android (Gradle) | `~/.gradle/caches/`, `.cxx/`, `build/` | Safe | 5-20 GB |
+| React Native | `android/app/build/`, `ios/Pods/` | Safe | 2-8 GB |
+| Flutter | `.dart_tool/`, `build/`, `ios/Pods/` | Safe | 1-5 GB |
 
-### DevOps and Infrastructure
+### DevOps and infrastructure
 
-Docker cleanup is handled exclusively through the Docker API (`docker system prune`) rather than direct filesystem deletion. Touching virtual disk files while the daemon is running risks corruption. Terraform's `.terraform/` directory is safe to delete, but `terraform.tfstate` files are on an absolute blocklist and are never touched under any circumstance.
+Docker cleanup goes through the Docker API (`docker system prune`), not direct filesystem deletion. Touching virtual disk files while the daemon runs risks corruption. Terraform's `.terraform/` directory is safe to delete, but `terraform.tfstate` files are on an absolute blocklist and will never be touched under any circumstance.
 
 
-## Development Status
+## Development status
 
 | Phase | Description | Status |
 |-------|-------------|--------|
@@ -194,28 +194,28 @@ Docker cleanup is handled exclusively through the Docker API (`docker system pru
 | Phase 13 | Open source release | Not started |
 
 
-## Planned Usage
+## Planned usage
 
-> The following describes the intended user experience. None of this is functional yet.
+> None of this is functional yet. This describes where the tool is headed.
 
-### Menu Bar Application (macOS)
+### Menu bar application (macOS)
 
-Jhara lives in the menu bar. Clicking the icon opens a panel showing a treemap of your developer directories, color-coded by safety tier rather than raw size. A 2 GB `node_modules` directory appears green (Safe, one click to remove). A 500 MB set of Conda environments appears amber (Caution, review before removing).
+Jhara lives in the menu bar. Clicking the icon opens a panel with a treemap of your developer directories, color-coded by safety tier rather than raw size. A 2 GB `node_modules` shows up green (Safe, one click to remove). A 500 MB set of Conda environments shows up amber (Caution, review before removing).
 
-### Scan and Clean
+### Scan and clean
 
 ```
 Open Jhara from menu bar
 → Click "Scan Developer Directories"
-→ Scan completes in 3 to 8 seconds depending on project count
+→ Scan completes in 3-8 seconds depending on project count
 → Review results grouped by project
 → Select what to remove, or use "Remove All Safe Items"
-→ Items are moved to Trash (not permanently deleted)
+→ Items go to Trash, not permanent deletion
 ```
 
-### Pro: Automation Rules
+### Pro: automation rules
 
-The Pro tier adds a background automation engine powered by `SMAppService`. Configure rules like "remove node_modules from any project not modified in 60 days" and have them run automatically on a schedule, with a notification summary after each run.
+The Pro tier adds a background automation engine via `SMAppService`. You configure rules like "remove node_modules from any project not touched in 60 days" and they run on a schedule, with a notification summary after each run.
 
 ```
 Settings > Automation > Add Rule
@@ -225,14 +225,14 @@ Settings > Automation > Add Rule
 → Notification: "Jhara removed 12.4 GB from 8 inactive projects"
 ```
 
-Rules are stored locally. No data is sent to any server.
+Rules are stored locally. Nothing goes to any server.
 
 ### Linux and Windows (Tauri)
 
-The Linux and Windows applications share the same Next.js frontend and connect to the same `jhara-core` Rust backend. The scanning behavior, ecosystem coverage, and safety classifications are identical to the macOS version. Platform-specific differences: no iCloud guard (no equivalent on Linux/Windows), background automation uses systemd user units on Linux and HKCU registry or Task Scheduler on Windows.
+The Linux and Windows apps share the same Next.js frontend and connect to the same `jhara-core` Rust backend. Scanning behavior, ecosystem coverage, and safety classifications are identical to macOS. Platform differences: no iCloud guard (no equivalent exists), background automation uses systemd user units on Linux and HKCU registry or Task Scheduler on Windows.
 
 
-## Building from Source
+## Building from source
 
 ### Prerequisites
 
@@ -241,7 +241,7 @@ The Linux and Windows applications share the same Next.js frontend and connect t
 - Node.js 22 or later
 - pnpm 9 or later
 
-### Rust Core
+### Rust core
 
 ```bash
 git clone https://github.com/hmyousuf/jhara.git
@@ -254,10 +254,10 @@ cargo build --release -p jhara-core
 cargo test -p jhara-core
 ```
 
-### macOS Application
+### macOS application
 
 ```bash
-# Build the macOS FFI static library first
+# Build the macOS FFI static library
 cargo build --release --target aarch64-apple-darwin -p jhara-macos-ffi
 cargo build --release --target x86_64-apple-darwin -p jhara-macos-ffi
 lipo -create -output target/libjhara_universal.a \
@@ -268,7 +268,7 @@ lipo -create -output target/libjhara_universal.a \
 open apps/macos/jhara.xcodeproj
 ```
 
-### Tauri App (Linux / Windows)
+### Tauri app (Linux / Windows)
 
 ```bash
 cd apps/tauri
@@ -277,7 +277,7 @@ pnpm tauri dev       # Development
 pnpm tauri build     # Production
 ```
 
-### JavaScript Packages and Web Dashboard
+### JavaScript packages and web dashboard
 
 ```bash
 pnpm install
@@ -294,7 +294,7 @@ pnpm db:push
 ```
 
 
-## Project Structure
+## Project structure
 
 ```
 crates/jhara-core/src/
@@ -310,7 +310,7 @@ crates/jhara-core/src/
 │   ├── signatures.rs        Ecosystem signature database
 │   └── frameworks.rs        package.json dependency parsing for framework detection
 ├── classifier/
-│   ├── mod.rs               SafetyClassifier — combines all signals
+│   ├── mod.rs               SafetyClassifier, combines all signals
 │   ├── staleness.rs         mtime-based activity analysis, .git/HEAD awareness
 │   └── blocklist.rs         Absolute never-delete path patterns
 └── ffi/
@@ -319,15 +319,15 @@ crates/jhara-core/src/
 
 apps/macos/jhara/
 ├── Scanner/
-│   ├── iCloudGuard.swift    Pre-scan iCloud detection → skip-list for Rust
-│   ├── FSEventsMonitor.swift Directory change detection → trigger Rust re-scan
+│   ├── iCloudGuard.swift    Pre-scan iCloud detection, skip-list for Rust
+│   ├── FSEventsMonitor.swift Directory change detection, trigger Rust re-scan
 │   └── DiskUsageReporter.swift volumeAvailableCapacityForImportantUsage
 ├── UI/                      SwiftUI views, treemap (Canvas), NSStatusItem
 ├── Automation/              SMAppService registration, XPC, notification actions
 └── Cleaner/                 TrashCoordinator, GitSafetyChecker
 
 apps/tauri/
-├── src/                     Next.js frontend (shared with no macOS-specific UI)
+├── src/                     Next.js frontend
 └── src-tauri/src/
     ├── main.rs
     └── commands/
@@ -336,48 +336,48 @@ apps/tauri/
 ```
 
 
-## Design Decisions
+## Design decisions
 
-### Rust Core, Not Swift Scanner
+### Rust core, not Swift scanner
 
-The original implementation planned to write the scanner in Swift using `fts_open`. The decision to move the scanner to Rust was made for three reasons. First, the scan logic — inode tracking, path interning, ecosystem detection, safety classification — has no macOS dependency and should be written once, not twice. Second, the Linux and Windows Tauri app needs the same logic, and rewriting it in a third language would be a maintenance burden. Third, `jwalk` with rayon provides parallel directory traversal that is competitive with or faster than a single-threaded `fts_open` wrapper on multi-core machines.
+The original plan was to write the scanner in Swift using `fts_open`. Three things changed that. The scan logic, inode tracking, path interning, ecosystem detection, safety classification, has no macOS dependency and should be written once, not twice. The Linux and Windows Tauri app needs the same logic, and rewriting it would create a maintenance problem. And `jwalk` with rayon gives parallel directory traversal that's competitive with a single-threaded `fts_open` wrapper on multi-core machines.
 
-The Swift layer retains only the three things that genuinely require macOS APIs: iCloud path detection, FSEvents monitoring, and volume capacity queries.
+Swift keeps only the three things that genuinely need macOS APIs: iCloud path detection, FSEvents monitoring, and volume capacity queries.
 
-### iCloud Guard Architecture
+### iCloud guard architecture
 
-`URLResourceKey.isUbiquitousItemKey` is a CoreServices API accessible only from Swift or Objective-C. The chosen pattern is a pre-scan: Swift enumerates top-level home directories using `FileManager.enumerator` with `.skipsSubdirectoryDescendants`, checks `isUbiquitousItemKey` for each, and serializes the results as a flat array of C strings passed to the Rust scanner before traversal begins. Inside `jwalk`'s `process_read_dir` hook, Rust performs an O(1) `HashSet<PathBuf>` lookup. If a directory is in the skip-list, `jwalk` never descends into it, meaning no child paths ever reach the iCloud check.
+`URLResourceKey.isUbiquitousItemKey` is a CoreServices API only accessible from Swift or Objective-C. The pattern chosen: Swift enumerates top-level home directories with `FileManager.enumerator` using `.skipsSubdirectoryDescendants`, checks `isUbiquitousItemKey` for each, and serializes the results as a flat array of C strings passed to the Rust scanner before traversal begins. Inside `jwalk`'s `process_read_dir` hook, Rust does an O(1) `HashSet<PathBuf>` lookup. If a directory is in the skip-list, `jwalk` never descends into it.
 
-This was chosen over `objc2`-based Objective-C bridging from Rust because `objc2` requires depending on Apple's internal framework memory layouts, which break on major macOS versions. The pre-scan pattern is predictable, testable, and requires no unsafe Objective-C interop in the hot path.
+This was chosen over `objc2`-based bridging from Rust because `objc2` depends on Apple's internal framework memory layouts, which break on major macOS versions. The pre-scan pattern is predictable, testable, and requires no unsafe Objective-C interop in the hot path.
 
-### ScanNodeC Batched FFI Callbacks
+### ScanNodeC batched FFI callbacks
 
-The C FFI delivers scan results in batches of 1,024 nodes per callback invocation rather than one node per call. At one million files, a per-node callback would queue one million messages into the Swift actor's mailbox. Swift actors process mailboxes sequentially — this floods the executor, causes memory spikes, and starves the UI thread. With 1,024-node batches, the FFI boundary is crossed approximately 1,000 times per scan. The Swift actor unpacks each batch synchronously and passes it to the scan tree. The same batching logic applies to the Tauri frontend via `tauri::Window::emit()`.
+The C FFI delivers results in batches of 1,024 nodes per callback invocation rather than one per call. At one million files, a per-node callback would queue one million messages into the Swift actor's mailbox. Actors process mailboxes sequentially, so this floods the executor, causes memory spikes, and starves the UI thread. With 1,024-node batches, the FFI boundary is crossed about 1,000 times per scan. The Tauri frontend mirrors this with batched `tauri::Window::emit()` calls.
 
-### ustr + Flat Vec for Scan Tree
+### ustr + flat Vec for scan tree
 
-`ScanTree` stores one million path strings in approximately 18 MB using two techniques. Path segments are interned with `ustr`, which maintains a lock-free global cache and returns null-terminated pointers usable directly as `*const c_char` at the FFI boundary. Tree nodes are stored in a flat `Vec<TreeNode>` where each node holds its parent's index. Size rollups happen in a single reverse-order pass after the scan completes — O(N), cache-friendly, with no recursive calls or per-insertion locking.
+`ScanTree` stores one million path strings in about 18 MB using two techniques. Path segments are interned with `ustr`, which maintains a lock-free global cache and returns null-terminated pointers usable directly as `*const c_char` at the FFI boundary. Tree nodes are stored in a flat `Vec<TreeNode>` where each node holds its parent's index. Size rollups happen in a single reverse-order pass after the scan completes: O(N), cache-friendly, no recursive calls, no per-insertion locking.
 
-### mtime Over kMDItemLastUsedDate
+### mtime over kMDItemLastUsedDate
 
-`kMDItemLastUsedDate` is only updated when a file is opened through a GUI application via LaunchServices. Running `npm run build` or `cargo test` in the terminal updates no Spotlight metadata whatsoever. Jhara uses the POSIX `mtime` of the project's root descriptor file combined with the `mtime` of `.git/HEAD`, which is updated on every commit, checkout, and branch operation.
+`kMDItemLastUsedDate` only updates when a file is opened through a GUI app via LaunchServices. Running `npm run build` or `cargo test` in the terminal updates no Spotlight metadata. Jhara uses the POSIX `mtime` of the project's root descriptor file combined with the `mtime` of `.git/HEAD`, which updates on every commit, checkout, and branch operation.
 
-### GRDB Over SwiftData
+### GRDB over SwiftData
 
-SwiftData's predicate support and multi-threaded access story remain incomplete as of macOS 15. GRDB.swift provides direct, efficient SQLite access, correct concurrent read behavior (required because the background automation agent and the foreground app both read the same database), and has been production-proven in macOS apps for years.
+SwiftData's predicate support and multi-threaded access story are still incomplete as of macOS 15. GRDB.swift gives direct, efficient SQLite access, correct concurrent read behavior (needed because the background automation agent and the foreground app both read the same database), and has been production-proven in macOS apps for years.
 
-### Distribution via Signed DMG
+### Distribution via signed DMG
 
-The Mac App Store sandbox prevents apps from accessing paths outside the user's container without an explicit file picker. An app that can only scan directories you individually pick is not a disk manager. Jhara is distributed as an Apple Developer ID-signed, notarized `.dmg`, requesting Full Disk Access through the standard macOS permission flow.
+The Mac App Store sandbox prevents apps from accessing paths outside the user's container without an explicit file picker. An app that can only scan directories you individually select isn't a disk manager. Jhara ships as an Apple Developer ID-signed, notarized `.dmg`, requesting Full Disk Access through the standard macOS permission flow.
 
 
-## Distribution Model
+## Distribution model
 
-**Free tier (open source):** Full scanning and manual cleanup across all 80+ ecosystem types. No limitations on what you can scan or remove. The free tier is a complete manual disk manager.
+**Free tier (open source):** Full scanning and manual cleanup across all 80+ ecosystem types. No limits on what you can scan or remove.
 
-**Pro tier ($12.99 one-time, Lemon Squeezy):** Background automation via `SMAppService` (macOS) and systemd/Task Scheduler (Linux/Windows). Configurable staleness rules, scheduled runs, and notification summaries. One-time payment, no subscription. Two-machine activation limit.
+**Pro tier ($12.99 one-time, Lemon Squeezy):** Background automation via `SMAppService` (macOS) and systemd/Task Scheduler (Linux/Windows). Configurable staleness rules, scheduled runs, notification summaries. One-time payment, no subscription. Two-machine activation limit.
 
-**Why open source the core:** A tool requesting Full Disk Access on a machine full of source code and secrets should be auditable. Eighty-plus ecosystem types requires community contributions to stay accurate. And a well-maintained, starred open-source tool is a better portfolio signal than a closed-source app.
+**Why open source the core:** A tool requesting Full Disk Access on a machine full of source code and secrets should be auditable. 80+ ecosystem types requires community contributions to stay accurate. And honestly, a well-maintained open-source tool is a better portfolio signal than a closed-source app anyway.
 
 
 ## Contributing
@@ -390,14 +390,12 @@ Before starting:
 2. Check the [roadmap](ROADMAP.md) to understand which phase is current
 3. Open an issue or start a discussion before beginning large changes
 
-Rules that apply everywhere:
-
-New ecosystem detection entries need at least one test covering the detection signature, artifact paths, and safety classification rationale. Performance-sensitive changes need before/after measurements. Bengali text and comments are welcome alongside English — this project has roots in South Asian developer culture.
+A few rules that apply everywhere: new ecosystem detection entries need at least one test covering the detection signature, artifact paths, and safety classification rationale. Performance-sensitive changes need before/after measurements. Bengali text and comments are welcome alongside English, this project has roots in South Asian developer culture.
 
 
 ## License
 
-Jhara is released under the [Apache License 2.0](LICENSE).
+Apache License 2.0. See [LICENSE](LICENSE).
 
 The Pro automation feature requires a license key purchased through the Jhara website. The license validation code is open source and auditable.
 
