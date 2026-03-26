@@ -7,6 +7,8 @@
   <br />
   [![Rust](https://img.shields.io/badge/Rust-1.77%2B-orange?logo=rust&logoColor=white)](#)
   [![Swift](https://img.shields.io/badge/Swift-6.0-orange?logo=swift&logoColor=white)](#)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?logo=typescript&logoColor=white)](#)
+  [![Tauri](https://img.shields.io/badge/Tauri-v2-24C8D8?logo=tauri&logoColor=white)](#)
   <br />
   [![macOS](https://img.shields.io/badge/macOS-14%2B-lightgray?logo=apple&logoColor=white)](#)
   [![Linux](https://img.shields.io/badge/Linux-Supported-lightgray?logo=linux&logoColor=white)](#)
