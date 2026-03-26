@@ -2,13 +2,15 @@
   <h1>Jhara (ঝরা)</h1>
   <p><b>A developer disk cleaner that understands your projects — native macOS, cross-platform core.</b></p>
 
-  [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg?logo=apache)](LICENSE)
   [![Status](https://img.shields.io/badge/Status-Pre--Alpha%20%2F%20Under%20Development-red.svg)](#development-status)
+  [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg?logo=apache)](LICENSE)
+  <br />
+  [![Rust](https://img.shields.io/badge/Rust-1.77%2B-orange?logo=rust&logoColor=white)](#)
+  [![Swift](https://img.shields.io/badge/Swift-6.0-orange?logo=swift&logoColor=white)](#)
+  <br />
   [![macOS](https://img.shields.io/badge/macOS-14%2B-lightgray?logo=apple&logoColor=white)](#)
   [![Linux](https://img.shields.io/badge/Linux-Supported-lightgray?logo=linux&logoColor=white)](#)
   [![Windows](https://img.shields.io/badge/Windows-Supported-lightgray?logo=windows&logoColor=white)](#)
-  [![Rust](https://img.shields.io/badge/Rust-1.77%2B-orange?logo=rust&logoColor=white)](#)
-  [![Swift](https://img.shields.io/badge/Swift-6.0-orange?logo=swift&logoColor=white)](#)
 
   <br />
 </div>
