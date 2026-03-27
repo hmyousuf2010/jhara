@@ -33,6 +33,7 @@
 		A9568D8B2F73C54100F945B4 /* jharaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = jharaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A9568D952F73C54100F945B4 /* jharaUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = jharaUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A9A436132F758F1200DABD54 /* libjhara_universal.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libjhara_universal.a; path = lib/libjhara_universal.a; sourceTree = "<group>"; };
+		A9F28AD62F76311700C4A704 /* jhara.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = jhara.xcodeproj; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -121,6 +122,13 @@
 				A9A436132F758F1200DABD54 /* libjhara_universal.a */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		A9F28ADA2F76311700C4A704 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -233,6 +241,12 @@
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A9568D7F2F73C54000F945B4 /* Products */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = A9F28ADA2F76311700C4A704 /* Products */;
+					ProjectRef = A9F28AD62F76311700C4A704 /* jhara.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				A9568D7D2F73C54000F945B4 /* jhara */,
