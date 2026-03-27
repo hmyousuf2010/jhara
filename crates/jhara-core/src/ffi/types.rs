@@ -81,21 +81,21 @@ const _: () = assert!(
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NodeKind {
-    Unknown   = 0,
-    File      = 1,
+    Unknown = 0,
+    File = 1,
     Directory = 2,
-    Symlink   = 3,
-    Other     = 4,
+    Symlink = 3,
+    Other = 4,
 }
 
 impl From<crate::scanner::NodeKind> for NodeKind {
     fn from(k: crate::scanner::NodeKind) -> Self {
         match k {
-            crate::scanner::NodeKind::File    => NodeKind::File,
-            crate::scanner::NodeKind::DirPre  => NodeKind::Directory,
+            crate::scanner::NodeKind::File => NodeKind::File,
+            crate::scanner::NodeKind::DirPre => NodeKind::Directory,
             crate::scanner::NodeKind::DirPost => NodeKind::Directory,
             crate::scanner::NodeKind::Symlink => NodeKind::Symlink,
-            crate::scanner::NodeKind::Other   => NodeKind::Other,
+            crate::scanner::NodeKind::Other => NodeKind::Other,
         }
     }
 }
@@ -109,18 +109,18 @@ impl NodeKind {
 /// Owned mirror of `ScanNodeC` for storage inside the handle's results.
 #[derive(Debug, Clone)]
 pub struct ScanNodeOwned {
-    pub path:               String,
-    pub name:               String,
-    pub inode:              u64,
-    pub physical_size:      i64,
-    pub logical_size:       i64,
-    pub modification_secs:  i64,
+    pub path: String,
+    pub name: String,
+    pub inode: u64,
+    pub physical_size: i64,
+    pub logical_size: i64,
+    pub modification_secs: i64,
     pub modification_nanos: u32,
-    pub link_count:         u16,
-    pub kind:               u8,
-    pub is_ghost:           bool,
-    pub safety_tier:        u8,
-    pub safety_rating:      u8,
+    pub link_count: u16,
+    pub kind: u8,
+    pub is_ghost: bool,
+    pub safety_tier: u8,
+    pub safety_rating: u8,
 }
 
 // ── Batch ─────────────────────────────────────────────────────────────────────
@@ -173,10 +173,10 @@ mod tests {
 
     #[test]
     fn node_kind_discriminants_are_stable() {
-        assert_eq!(NodeKind::Unknown   as u8, 0);
-        assert_eq!(NodeKind::File      as u8, 1);
+        assert_eq!(NodeKind::Unknown as u8, 0);
+        assert_eq!(NodeKind::File as u8, 1);
         assert_eq!(NodeKind::Directory as u8, 2);
-        assert_eq!(NodeKind::Symlink   as u8, 3);
+        assert_eq!(NodeKind::Symlink as u8, 3);
     }
 
     /// Mirrors the Swift alignment validation test described in §4.4.
@@ -184,23 +184,23 @@ mod tests {
     /// byte identity through a raw pointer cast.
     #[test]
     fn sentinel_hex_round_trip() {
-        let sentinel_path  = b"sentinel\0";
-        let sentinel_name  = b"name\0";
+        let sentinel_path = b"sentinel\0";
+        let sentinel_name = b"name\0";
 
         let node = ScanNodeC {
-            path:               sentinel_path.as_ptr() as *const _,
-            name:               sentinel_name.as_ptr() as *const _,
-            inode:              0xDEAD_BEEF_CAFE_BABE_u64,
-            physical_size:      0x0102_0304_0506_0708_i64,
-            logical_size:       0x1112_1314_1516_1718_i64,
-            modification_secs:  0x2122_2324_2526_2728_i64,
+            path: sentinel_path.as_ptr() as *const _,
+            name: sentinel_name.as_ptr() as *const _,
+            inode: 0xDEAD_BEEF_CAFE_BABE_u64,
+            physical_size: 0x0102_0304_0506_0708_i64,
+            logical_size: 0x1112_1314_1516_1718_i64,
+            modification_secs: 0x2122_2324_2526_2728_i64,
             modification_nanos: 0x3132_3334_u32,
-            link_count:         0x4142_u16,
-            kind:               NodeKind::File.as_u8(),
-            is_ghost:           0,
-            safety_tier:        0,
-            safety_rating:      0,
-            _reserved:          [0u8; 6],
+            link_count: 0x4142_u16,
+            kind: NodeKind::File.as_u8(),
+            is_ghost: 0,
+            safety_tier: 0,
+            safety_rating: 0,
+            _reserved: [0u8; 6],
         };
 
         // Verify values survive a round-trip through a raw pointer,
@@ -208,13 +208,13 @@ mod tests {
         let ptr: *const ScanNodeC = &node;
         let recovered = unsafe { &*ptr };
 
-        assert_eq!(recovered.inode,             0xDEAD_BEEF_CAFE_BABE);
-        assert_eq!(recovered.physical_size,     0x0102_0304_0506_0708);
-        assert_eq!(recovered.logical_size,      0x1112_1314_1516_1718);
+        assert_eq!(recovered.inode, 0xDEAD_BEEF_CAFE_BABE);
+        assert_eq!(recovered.physical_size, 0x0102_0304_0506_0708);
+        assert_eq!(recovered.logical_size, 0x1112_1314_1516_1718);
         assert_eq!(recovered.modification_secs, 0x2122_2324_2526_2728);
-        assert_eq!(recovered.modification_nanos,0x3132_3334);
-        assert_eq!(recovered.link_count,        0x4142);
-        assert_eq!(recovered.kind,              NodeKind::File.as_u8());
-        assert_eq!(recovered.is_ghost,          0);
+        assert_eq!(recovered.modification_nanos, 0x3132_3334);
+        assert_eq!(recovered.link_count, 0x4142);
+        assert_eq!(recovered.kind, NodeKind::File.as_u8());
+        assert_eq!(recovered.is_ghost, 0);
     }
 }

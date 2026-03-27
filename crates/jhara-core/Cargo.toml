@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 authors = ["H.M. Yousuf"]
 description = "Core detection and analysis engine for Jhara disk manager"
-license = "MIT"
-repository = "https://github.com/hmyousuf/jhara"
+license = "Apache-2.0"
+repository = "https://github.com/hmyousuf2010/jhara"
 
 [lib]
 name = "jhara_core"

@@ -4,11 +4,11 @@
 // Detects artifacts that existed but have been deleted, or are referenced
 // in developer logs/history but aren't currently on the filesystem.
 
+use crate::detector::types::{Ecosystem, GhostCandidate};
 use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use crate::detector::types::{GhostCandidate, Ecosystem};
 
 /// Discovers ghost candidates from various system sources.
 pub fn discover_ghosts(root: &Path) -> Vec<GhostCandidate> {
@@ -35,7 +35,7 @@ pub fn discover_ghosts(root: &Path) -> Vec<GhostCandidate> {
 
 fn from_git_history(root: &Path) -> Result<Vec<GhostCandidate>, std::io::Error> {
     let output = Command::new("git")
-        .args(&["log", "--diff-filter=D", "--summary", "--pretty=format:"])
+        .args(["log", "--diff-filter=D", "--summary", "--pretty=format:"])
         .current_dir(root)
         .output()?;
 
@@ -54,7 +54,7 @@ fn from_git_history(root: &Path) -> Result<Vec<GhostCandidate>, std::io::Error> 
             if parts.len() >= 4 {
                 let path_str = parts[4..].join(" ");
                 let path = PathBuf::from(path_str);
-                
+
                 // We only care about directory markers or significant files
                 // that hint at a project's existence.
                 if !seen.contains(&path) {
@@ -75,7 +75,7 @@ fn from_git_history(root: &Path) -> Result<Vec<GhostCandidate>, std::io::Error> 
 fn from_shell_history(home: &Path, filter_root: &Path) -> Vec<GhostCandidate> {
     let mut candidates = Vec::new();
     let history_files = [".zsh_history", ".bash_history", ".fish_history"];
-    
+
     for file_name in &history_files {
         let path = home.join(file_name);
         if let Ok(content) = fs::read_to_string(&path) {
@@ -114,14 +114,14 @@ fn extract_path_from_rm(line: &str) -> Option<&str> {
 fn from_gitignore(root: &Path) -> Vec<GhostCandidate> {
     let mut candidates = Vec::new();
     let gitignore = root.join(".gitignore");
-    
+
     if let Ok(content) = fs::read_to_string(gitignore) {
         for line in content.lines() {
             let line = line.trim();
             if line.is_empty() || line.starts_with('#') {
                 continue;
             }
-            
+
             // If the ignored path doesn't exist, it's a ghost candidate
             let path = root.join(line);
             if !path.exists() {
@@ -136,12 +136,22 @@ fn from_gitignore(root: &Path) -> Vec<GhostCandidate> {
             }
         }
     }
-    
+
     candidates
 }
 
 fn is_famous_artifact_name(name: &str) -> bool {
-    let famous = ["node_modules", "target", "build", "dist", "out", "vendor", ".venv", "bin", "obj"];
+    let famous = [
+        "node_modules",
+        "target",
+        "build",
+        "dist",
+        "out",
+        "vendor",
+        ".venv",
+        "bin",
+        "obj",
+    ];
     famous.contains(&name)
 }
 

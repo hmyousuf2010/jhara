@@ -1,0 +1,42 @@
+name: Stale issues and PRs
+
+on:
+  schedule:
+    - cron: '0 10 * * 1'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/stale@v9
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+          # Issues
+          days-before-issue-stale: 60
+          days-before-issue-close: 14
+          stale-issue-label: stale
+          stale-issue-message: |
+            This issue hasn't had activity in 60 days. It'll be closed in 14 days unless something changes.
+            If it's still relevant, leave a comment or remove the `stale` label.
+          close-issue-message: |
+            Closing due to inactivity. If this is still a problem, feel free to reopen with fresh context.
+
+          # PRs
+          days-before-pr-stale: 30
+          days-before-pr-close: 7
+          stale-pr-label: stale
+          stale-pr-message: |
+            This PR hasn't had activity in 30 days. It'll be closed in 7 days.
+            If you're still working on it, push a commit or leave a comment.
+          close-pr-message: |
+            Closing due to inactivity. The branch is still there if you want to pick it back up.
+
+          # These labels skip stale logic entirely
+          exempt-issue-labels: 'pinned,security,blocked,in-progress'
+          exempt-pr-labels: 'pinned,security,blocked,in-progress'

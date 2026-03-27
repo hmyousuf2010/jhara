@@ -250,10 +250,7 @@ pub struct ArtifactPath {
 }
 
 impl ArtifactPath {
-    pub const fn new(
-        relative_path: &'static str,
-        safety_tier: SafetyTier,
-    ) -> Self {
+    pub const fn new(relative_path: &'static str, safety_tier: SafetyTier) -> Self {
         ArtifactPath {
             relative_path,
             safety_tier,
@@ -308,8 +305,16 @@ impl From<&ArtifactPath> for ArtifactPathOwned {
             safety_tier: a.safety_tier,
             is_global: a.is_global,
             recovery_command: a.recovery_command.map(|s| s.to_string()),
-            typical_size_mb_min: if a.typical_size_mb_min > 0 { Some(a.typical_size_mb_min) } else { None },
-            typical_size_mb_max: if a.typical_size_mb_max > 0 { Some(a.typical_size_mb_max) } else { None },
+            typical_size_mb_min: if a.typical_size_mb_min > 0 {
+                Some(a.typical_size_mb_min)
+            } else {
+                None
+            },
+            typical_size_mb_max: if a.typical_size_mb_max > 0 {
+                Some(a.typical_size_mb_max)
+            } else {
+                None
+            },
             is_prunable: a.is_prunable,
         }
     }
@@ -364,7 +369,9 @@ pub struct ProjectSignatureOwned {
     pub stale_threshold_days: u32,
 }
 
-fn default_stale_threshold() -> u32 { 60 }
+fn default_stale_threshold() -> u32 {
+    60
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DetectedProject

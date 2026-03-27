@@ -36,8 +36,7 @@ mod windows_impl {
 
     use windows::Win32::Foundation::HANDLE;
     use windows::Win32::Storage::FileSystem::{
-        GetFileInformationByHandleEx, FileIdInfo, FILE_ID_INFO,
-        FILE_FLAG_BACKUP_SEMANTICS,
+        FileIdInfo, GetFileInformationByHandleEx, FILE_FLAG_BACKUP_SEMANTICS, FILE_ID_INFO,
     };
 
     /// Open `path` with `FILE_FLAG_BACKUP_SEMANTICS` (required for directories)
@@ -72,7 +71,7 @@ mod windows_impl {
 
         // FILE_ID_128.Identifier is a [u8; 16]. Split into two u64s.
         let bytes = info.FileId.Identifier;
-        let low  = u64::from_le_bytes(bytes[0..8].try_into().unwrap());
+        let low = u64::from_le_bytes(bytes[0..8].try_into().unwrap());
 
         Some((info.VolumeSerialNumber as u64, low))
     }

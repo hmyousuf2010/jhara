@@ -1,0 +1,156 @@
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 9 * * 1'
+
+# Least-privilege defaults; individual jobs escalate only what they need.
+permissions:
+  contents: read
+
+jobs:
+  # ── CodeQL ────────────────────────────────────────────────────────────────
+  # Split into two separate jobs so a Swift build failure doesn't block JS
+  # analysis (and vice-versa), and both can run in parallel.
+  codeql-js:
+    name: CodeQL (javascript-typescript)
+    runs-on: ubuntu-24.04
+    # CodeQL SARIF upload requires write on security-events.
+    # For PRs from forks this permission is NOT granted; skip gracefully.
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    # Skip on fork PRs — they don't have security-events write permission.
+    if: >
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-extended
+
+      # Let CodeQL auto-build (no compilation step needed for JS/TS).
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:javascript-typescript
+
+  codeql-swift:
+    name: CodeQL (swift)
+    runs-on: macos-15
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    if: >
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 16
+        run: sudo xcode-select -s /Applications/Xcode_16.app
+
+      - name: Install Rust (universal targets)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      # Restore the Rust cache so the FFI library doesn't rebuild from scratch.
+      - name: Restore Rust cache (macOS)
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-macos-15-stable
+          save-if: false
+
+      # Restore the pre-built universal .a if nothing relevant changed.
+      - name: Cache universal Rust library
+        uses: actions/cache@v4
+        id: ffi-cache
+        with:
+          path: apps/macos/lib/libjhara_universal.a
+          key: ffi-universal-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'crates/jhara-macos-ffi/**') }}
+
+      - name: Build universal Rust library
+        if: steps.ffi-cache.outputs.cache-hit != 'true'
+        run: bash scripts/build_universal.sh || true
+        env:
+          CONFIGURATION: Debug
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: swift
+          queries: security-extended
+
+      - name: Build Swift for CodeQL
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project apps/macos/jhara.xcodeproj \
+            -scheme jhara \
+            -configuration Debug \
+            -sdk macosx \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:swift
+
+  # ── Cargo advisory check ──────────────────────────────────────────────────
+  rust-audit:
+    name: Rust advisory check
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: rustsec/audit-check@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── Cargo deny (licenses, bans, advisories) ───────────────────────────────
+  cargo-deny:
+    name: Cargo deny
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check
+          arguments: --all-features
+
+  # ── Secret scanning ───────────────────────────────────────────────────────
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: TruffleHog OSS
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --only-verified

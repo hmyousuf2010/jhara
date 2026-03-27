@@ -1,0 +1,9 @@
+---
+blank_issues_enabled: false
+contact_links:
+  - name: Question or discussion
+    url: https://github.com/hmyousuf/jhara/discussions
+    about: For general questions, design discussions, or anything that isn't a bug or feature request.
+  - name: Security vulnerability
+    url: https://github.com/hmyousuf/jhara/security/policy
+    about: Please read the security policy before reporting vulnerabilities. Don't file public issues for security bugs.

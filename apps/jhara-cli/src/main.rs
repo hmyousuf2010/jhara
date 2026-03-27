@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
-use jhara_core::{scan, ScanConfig, ScanStats, ScanTree, NodeKind};
+use jhara_core::{scan, NodeKind, ScanConfig, ScanStats, ScanTree};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -81,11 +81,20 @@ fn print_summary(
     println!("─────────────────────────────────────────");
     println!("  Entries scanned : {}", fmt_count(stats.total_entries));
     println!("  Throughput      : {:.0} entries/sec", rate);
-    println!("  Physical bytes  : {}", fmt_bytes(stats.total_physical_bytes));
-    println!("  Logical bytes   : {}", fmt_bytes(stats.total_logical_bytes));
+    println!(
+        "  Physical bytes  : {}",
+        fmt_bytes(stats.total_physical_bytes)
+    );
+    println!(
+        "  Logical bytes   : {}",
+        fmt_bytes(stats.total_logical_bytes)
+    );
     println!("  Deduped entries : {}", fmt_count(stats.deduped_entries));
     if stats.skipped_cloud_entries > 0 {
-        println!("  Skipped (cloud) : {}", fmt_count(stats.skipped_cloud_entries));
+        println!(
+            "  Skipped (cloud) : {}",
+            fmt_count(stats.skipped_cloud_entries)
+        );
     }
     if stats.error_count > 0 {
         println!("  Errors          : {}", stats.error_count);
@@ -111,7 +120,12 @@ fn print_summary(
     dirs.sort_by(|a, b| b.1.cmp(&a.1));
 
     for (i, (path, size)) in dirs.iter().take(20).enumerate() {
-        println!("  {:>2}. {:>10}  {}", i + 1, fmt_bytes(*size), path.display());
+        println!(
+            "  {:>2}. {:>10}  {}",
+            i + 1,
+            fmt_bytes(*size),
+            path.display()
+        );
     }
 
     println!();

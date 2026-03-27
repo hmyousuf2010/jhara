@@ -15,7 +15,6 @@
 ///
 /// Cargo re-runs this script whenever any file under `src/ffi/` changes, or
 /// when `cbindgen.toml` changes.
-
 use std::env;
 use std::path::PathBuf;
 
@@ -34,20 +33,16 @@ fn main() {
     let crate_dir = env::var("CARGO_MANIFEST_DIR")
         .expect("CARGO_MANIFEST_DIR not set — this should always be set by Cargo");
 
-    let out_dir = PathBuf::from(
-        env::var("OUT_DIR").expect("OUT_DIR not set"),
-    );
+    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
 
     let header_out = out_dir.join("jhara_core.h");
 
     // ── Mirrors directory for Xcode ───────────────────────────────────────────
     // Written relative to the workspace root so Xcode can find it without
     // knowing the ephemeral OUT_DIR path.
-    let swift_include = PathBuf::from(&crate_dir)
-        .join("../../apps/macos/include");
+    let swift_include = PathBuf::from(&crate_dir).join("../../apps/macos/include");
 
-    std::fs::create_dir_all(&swift_include)
-        .expect("Failed to create apps/macos/include directory");
+    std::fs::create_dir_all(&swift_include).expect("Failed to create apps/macos/include directory");
 
     let swift_header = swift_include.join("jhara_core.h");
 
@@ -62,34 +57,37 @@ fn main() {
     config.usize_is_size_t = true;
     config.cpp_compat = false;
     config.include_guard = Some("JHARA_CORE_H".into());
-    config.header = Some(concat!(
-        "#include <stdint.h>\n",
-        "#include <stddef.h>\n",
-        "#include <stdbool.h>\n\n",
-        "// Opaque handle to a scan session.\n",
-        "typedef struct JharaScanHandle JharaScanHandle;\n\n",
-        "// A C-ABI-compatible representation of a single filesystem node (64 bytes).\n",
-        "typedef struct ScanNodeC {\n",
-        "    const char *path;\n",
-        "    const char *name;\n",
-        "    uint64_t inode;\n",
-        "    int64_t physical_size;\n",
-        "    int64_t logical_size;\n",
-        "    int64_t modification_secs;\n",
-        "    uint32_t modification_nanos;\n",
-        "    uint16_t link_count;\n",
-        "    uint8_t kind;\n",
-        "    uint8_t is_ghost;\n",
-        "    uint8_t safety_tier;\n",
-        "    uint8_t safety_rating;\n",
-        "    uint8_t _reserved[6];\n",
-        "} ScanNodeC;\n\n",
-        "// A batch of nodes passed to the scan callback.\n",
-        "typedef struct ScanNodeBatchC {\n",
-        "    const struct ScanNodeC *nodes;\n",
-        "    size_t count;\n",
-        "} ScanNodeBatchC;\n"
-    ).into());
+    config.header = Some(
+        concat!(
+            "#include <stdint.h>\n",
+            "#include <stddef.h>\n",
+            "#include <stdbool.h>\n\n",
+            "// Opaque handle to a scan session.\n",
+            "typedef struct JharaScanHandle JharaScanHandle;\n\n",
+            "// A C-ABI-compatible representation of a single filesystem node (64 bytes).\n",
+            "typedef struct ScanNodeC {\n",
+            "    const char *path;\n",
+            "    const char *name;\n",
+            "    uint64_t inode;\n",
+            "    int64_t physical_size;\n",
+            "    int64_t logical_size;\n",
+            "    int64_t modification_secs;\n",
+            "    uint32_t modification_nanos;\n",
+            "    uint16_t link_count;\n",
+            "    uint8_t kind;\n",
+            "    uint8_t is_ghost;\n",
+            "    uint8_t safety_tier;\n",
+            "    uint8_t safety_rating;\n",
+            "    uint8_t _reserved[6];\n",
+            "} ScanNodeC;\n\n",
+            "// A batch of nodes passed to the scan callback.\n",
+            "typedef struct ScanNodeBatchC {\n",
+            "    const struct ScanNodeC *nodes;\n",
+            "    size_t count;\n",
+            "} ScanNodeBatchC;\n"
+        )
+        .into(),
+    );
 
     // Export the types that the shim re-exports.
     config.export.include = vec![

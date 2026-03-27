@@ -7,10 +7,10 @@ pub use git::GitSessionCache;
 // Handles safe and reliable removal of artifact directories.
 // Supports both permanent deletion and moving to System Trash (when available).
 
-use std::fs;
-use std::path::{Path, PathBuf};
 use crate::error::JharaError;
 use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeletionStats {
@@ -36,7 +36,9 @@ impl DeletionCoordinator {
 
         for path in paths {
             if let Err(e) = Self::delete_single(path, &mut stats) {
-                stats.errors.push(format!("Failed to delete '{}': {}", path.display(), e));
+                stats
+                    .errors
+                    .push(format!("Failed to delete '{}': {}", path.display(), e));
             }
         }
 
@@ -55,7 +57,7 @@ impl DeletionCoordinator {
         } else {
             fs::remove_file(path)?;
         }
-        
+
         stats.files_removed += 1;
 
         Ok(())

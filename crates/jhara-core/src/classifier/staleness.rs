@@ -1,7 +1,7 @@
+use crate::cleaner::git::GitSessionCache;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
-use crate::cleaner::git::GitSessionCache;
 
 #[derive(Debug, PartialEq, Clone, Copy, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -40,7 +40,11 @@ impl StalenessChecker {
     }
 
     /// Evaluates the staleness of a project directory.
-    pub fn evaluate(&self, project_root: &Path, descriptor_mtime: Option<SystemTime>) -> std::io::Result<StalenessResult> {
+    pub fn evaluate(
+        &self,
+        project_root: &Path,
+        descriptor_mtime: Option<SystemTime>,
+    ) -> std::io::Result<StalenessResult> {
         let git_dir = project_root.join(".git");
         let git_head = git_dir.join("HEAD");
 
@@ -51,12 +55,16 @@ impl StalenessChecker {
         if git_dir.is_dir() {
             confidence = Confidence::High;
             // Gracefully handle git status failures (e.g., git not installed) by defaulting to safe (dirty = true)
-            is_dirty = self.git_cache.has_dirty_working_tree(project_root).unwrap_or(true);
+            is_dirty = self
+                .git_cache
+                .has_dirty_working_tree(project_root)
+                .unwrap_or(true);
             git_mtime = Self::safe_mtime(&git_head);
         }
 
         // Resolution: max(descriptor_mtime, git_mtime), fallback to dir mtime, fallback to UNIX EPOCH
-        let last_activity = descriptor_mtime.into_iter()
+        let last_activity = descriptor_mtime
+            .into_iter()
             .chain(git_mtime)
             .max()
             .unwrap_or_else(|| Self::safe_mtime(project_root).unwrap_or(SystemTime::UNIX_EPOCH));

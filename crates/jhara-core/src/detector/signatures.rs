@@ -69,24 +69,26 @@ const fn sig_with(
 
 // Node.js
 static NODE_ARTIFACTS: &[ArtifactPath] = &[
-    safe("node_modules").recovery("npm install").size_mb(50, 2048).prune(),
-    safe("node_modules/.cache").recovery("npm install").size_mb(10, 500),
+    safe("node_modules")
+        .recovery("npm install")
+        .size_mb(50, 2048)
+        .prune(),
+    safe("node_modules/.cache")
+        .recovery("npm install")
+        .size_mb(10, 500),
 ];
 
 // Bun
-static BUN_ARTIFACTS: &[ArtifactPath] = &[
-    safe("node_modules").recovery("bun install").size_mb(100, 5120).prune(),
-];
+static BUN_ARTIFACTS: &[ArtifactPath] = &[safe("node_modules")
+    .recovery("bun install")
+    .size_mb(100, 5120)
+    .prune()];
 
 // Deno
-static DENO_ARTIFACTS: &[ArtifactPath] = &[
-    safe("deno.lock").recovery("deno cache"),
-];
+static DENO_ARTIFACTS: &[ArtifactPath] = &[safe("deno.lock").recovery("deno cache")];
 
 // Storybook
-static STORYBOOK_ARTIFACTS: &[ArtifactPath] = &[
-    safe("storybook-static").size_mb(10, 500),
-];
+static STORYBOOK_ARTIFACTS: &[ArtifactPath] = &[safe("storybook-static").size_mb(10, 500)];
 
 // Go
 static GO_ARTIFACTS: &[ArtifactPath] = &[
@@ -97,13 +99,29 @@ static GO_ARTIFACTS: &[ArtifactPath] = &[
 
 // Python pip / uv / venv
 static PYTHON_PIP_ARTIFACTS: &[ArtifactPath] = &[
-    safe(".venv").recovery("pip install -r requirements.txt").size_mb(100, 2048).prune(),
-    safe("venv").recovery("pip install -r requirements.txt").size_mb(100, 2048).prune(),
-    safe("env").recovery("pip install -r requirements.txt").prune(),
-    safe("__pycache__").recovery("python (auto-generated)").prune(),
-    safe(".pytest_cache").recovery("pytest (auto-generated)").prune(),
-    safe(".mypy_cache").recovery("mypy (auto-generated)").prune(),
-    safe(".ruff_cache").recovery("ruff (auto-generated)").prune(),
+    safe(".venv")
+        .recovery("pip install -r requirements.txt")
+        .size_mb(100, 2048)
+        .prune(),
+    safe("venv")
+        .recovery("pip install -r requirements.txt")
+        .size_mb(100, 2048)
+        .prune(),
+    safe("env")
+        .recovery("pip install -r requirements.txt")
+        .prune(),
+    safe("__pycache__")
+        .recovery("python (auto-generated)")
+        .prune(),
+    safe(".pytest_cache")
+        .recovery("pytest (auto-generated)")
+        .prune(),
+    safe(".mypy_cache")
+        .recovery("mypy (auto-generated)")
+        .prune(),
+    safe(".ruff_cache")
+        .recovery("ruff (auto-generated)")
+        .prune(),
 ];
 
 // Python Poetry
@@ -116,11 +134,9 @@ static PYTHON_POETRY_ARTIFACTS: &[ArtifactPath] = &[
 ];
 
 // Conda
-static CONDA_ARTIFACTS: &[ArtifactPath] = &[
-    ArtifactPath::new("envs", SafetyTier::Caution)
-        .recovery("conda env create -f environment.yml")
-        .size_mb(512, 10240),
-];
+static CONDA_ARTIFACTS: &[ArtifactPath] = &[ArtifactPath::new("envs", SafetyTier::Caution)
+    .recovery("conda env create -f environment.yml")
+    .size_mb(512, 10240)];
 
 // Django
 static DJANGO_ARTIFACTS: &[ArtifactPath] = &[
@@ -132,7 +148,9 @@ static DJANGO_ARTIFACTS: &[ArtifactPath] = &[
 
 // Ruby
 static RUBY_ARTIFACTS: &[ArtifactPath] = &[
-    safe("vendor/bundle").recovery("bundle install").size_mb(50, 2048),
+    safe("vendor/bundle")
+        .recovery("bundle install")
+        .size_mb(50, 2048),
     safe(".bundle").recovery("bundle install"),
 ];
 
@@ -145,9 +163,10 @@ static RAILS_ARTIFACTS: &[ArtifactPath] = &[
 ];
 
 // PHP / Composer
-static PHP_COMPOSER_ARTIFACTS: &[ArtifactPath] = &[
-    safe("vendor").recovery("composer install").size_mb(10, 500).prune(),
-];
+static PHP_COMPOSER_ARTIFACTS: &[ArtifactPath] = &[safe("vendor")
+    .recovery("composer install")
+    .size_mb(10, 500)
+    .prune()];
 
 // Laravel
 static LARAVEL_ARTIFACTS: &[ArtifactPath] = &[
@@ -158,13 +177,17 @@ static LARAVEL_ARTIFACTS: &[ArtifactPath] = &[
 ];
 
 // Java Maven
-static MAVEN_ARTIFACTS: &[ArtifactPath] = &[
-    safe("target").recovery("mvn compile").size_mb(100, 5120).prune(),
-];
+static MAVEN_ARTIFACTS: &[ArtifactPath] = &[safe("target")
+    .recovery("mvn compile")
+    .size_mb(100, 5120)
+    .prune()];
 
 // Java Gradle
 static GRADLE_ARTIFACTS: &[ArtifactPath] = &[
-    safe("build").recovery("gradle build").size_mb(200, 10240).prune(),
+    safe("build")
+        .recovery("gradle build")
+        .size_mb(200, 10240)
+        .prune(),
     safe(".gradle").recovery("gradle build").prune(),
 ];
 
@@ -188,23 +211,22 @@ static CLOJURE_LEIN_ARTIFACTS: &[ArtifactPath] = &[
 ];
 
 // Clojure (deps.edn)
-static CLOJURE_DEPS_ARTIFACTS: &[ArtifactPath] = &[
-    safe(".cpcache").recovery("clj -P"),
-];
+static CLOJURE_DEPS_ARTIFACTS: &[ArtifactPath] = &[safe(".cpcache").recovery("clj -P")];
 
 // Groovy
-static GROOVY_ARTIFACTS: &[ArtifactPath] = &[
-    safe("build").recovery("groovyc").size_mb(10, 1024),
-];
+static GROOVY_ARTIFACTS: &[ArtifactPath] = &[safe("build").recovery("groovyc").size_mb(10, 1024)];
 
 // Rust
-static RUST_ARTIFACTS: &[ArtifactPath] = &[
-    safe("target").recovery("cargo build").size_mb(500, 15360).prune(),
-];
+static RUST_ARTIFACTS: &[ArtifactPath] = &[safe("target")
+    .recovery("cargo build")
+    .size_mb(500, 15360)
+    .prune()];
 
 // C / C++ (CMake)
 static CMAKE_ARTIFACTS: &[ArtifactPath] = &[
-    safe("build").recovery("cmake --build build").size_mb(100, 10240),
+    safe("build")
+        .recovery("cmake --build build")
+        .size_mb(100, 10240),
     safe("cmake-build-debug").recovery("cmake --build ."),
     safe("cmake-build-release").recovery("cmake --build ."),
     safe("out").recovery("cmake --build ."),
@@ -235,14 +257,13 @@ static REBAR_ARTIFACTS: &[ArtifactPath] = &[
 ];
 
 // Haskell / Stack
-static HASKELL_STACK_ARTIFACTS: &[ArtifactPath] = &[
-    safe(".stack-work").recovery("stack build").size_mb(200, 8192),
-];
+static HASKELL_STACK_ARTIFACTS: &[ArtifactPath] = &[safe(".stack-work")
+    .recovery("stack build")
+    .size_mb(200, 8192)];
 
 // OCaml / Dune
-static OCAML_ARTIFACTS: &[ArtifactPath] = &[
-    safe("_build").recovery("dune build").size_mb(100, 5120),
-];
+static OCAML_ARTIFACTS: &[ArtifactPath] =
+    &[safe("_build").recovery("dune build").size_mb(100, 5120)];
 
 // F#
 static FSHARP_ARTIFACTS: &[ArtifactPath] = &[
@@ -251,9 +272,8 @@ static FSHARP_ARTIFACTS: &[ArtifactPath] = &[
 ];
 
 // Swift (SPM standalone project)
-static SWIFT_SPM_ARTIFACTS: &[ArtifactPath] = &[
-    safe(".build").recovery("swift build").size_mb(100, 5120),
-];
+static SWIFT_SPM_ARTIFACTS: &[ArtifactPath] =
+    &[safe(".build").recovery("swift build").size_mb(100, 5120)];
 
 // Dart / Flutter
 static DART_ARTIFACTS: &[ArtifactPath] = &[
@@ -264,16 +284,14 @@ static DART_ARTIFACTS: &[ArtifactPath] = &[
 
 // R
 static R_ARTIFACTS: &[ArtifactPath] = &[
-    ArtifactPath::new(".Rhistory", SafetyTier::Caution)
-        .recovery("N/A — session history"),
+    ArtifactPath::new(".Rhistory", SafetyTier::Caution).recovery("N/A — session history"),
     ArtifactPath::new(".RData", SafetyTier::Caution)
         .recovery("N/A — workspace data. Review before deleting."),
 ];
 
 // Nim
-static NIM_ARTIFACTS: &[ArtifactPath] = &[
-    safe("nimcache").recovery("nimble build").size_mb(10, 512),
-];
+static NIM_ARTIFACTS: &[ArtifactPath] =
+    &[safe("nimcache").recovery("nimble build").size_mb(10, 512)];
 
 // Crystal
 static CRYSTAL_ARTIFACTS: &[ArtifactPath] = &[
@@ -282,26 +300,34 @@ static CRYSTAL_ARTIFACTS: &[ArtifactPath] = &[
 ];
 
 // D (dub)
-static D_ARTIFACTS: &[ArtifactPath] = &[
-    safe(".dub").recovery("dub build").size_mb(10, 1024),
-];
+static D_ARTIFACTS: &[ArtifactPath] = &[safe(".dub").recovery("dub build").size_mb(10, 1024)];
 
 // React Native (bare / Expo)
 static REACT_NATIVE_ARTIFACTS: &[ArtifactPath] = &[
-    safe("android/app/build").recovery("cd android && ./gradlew build").size_mb(500, 8192),
+    safe("android/app/build")
+        .recovery("cd android && ./gradlew build")
+        .size_mb(500, 8192),
     safe("android/.cxx").recovery("cd android && ./gradlew build"),
     safe("ios/build").recovery("xcodebuild").size_mb(500, 5120),
-    safe("ios/Pods").recovery("cd ios && pod install").size_mb(200, 3072),
+    safe("ios/Pods")
+        .recovery("cd ios && pod install")
+        .size_mb(200, 3072),
     safe(".expo").recovery("expo start"),
-    safe("node_modules").recovery("npm install").size_mb(200, 4096),
+    safe("node_modules")
+        .recovery("npm install")
+        .size_mb(200, 4096),
 ];
 
 // Flutter
 static FLUTTER_ARTIFACTS: &[ArtifactPath] = &[
     safe(".dart_tool").recovery("dart pub get"),
     safe("build").recovery("flutter build").size_mb(100, 5120),
-    safe("ios/Pods").recovery("cd ios && pod install").size_mb(200, 2048),
-    safe("android/app/build").recovery("./gradlew build").size_mb(200, 4096),
+    safe("ios/Pods")
+        .recovery("cd ios && pod install")
+        .size_mb(200, 2048),
+    safe("android/app/build")
+        .recovery("./gradlew build")
+        .size_mb(200, 4096),
 ];
 
 // Ionic / Capacitor
@@ -318,21 +344,33 @@ static DOTNET_ARTIFACTS: &[ArtifactPath] = &[
 
 // Mobile (Android)
 static ANDROID_ARTIFACTS: &[ArtifactPath] = &[
-    safe("app/build").recovery("./gradlew build").size_mb(500, 20480),
+    safe("app/build")
+        .recovery("./gradlew build")
+        .size_mb(500, 20480),
     safe(".cxx").recovery("./gradlew build"),
 ];
 
 // Unreal Engine
 static UNREAL_ARTIFACTS: &[ArtifactPath] = &[
-    safe("Intermediate").recovery("Unreal builds regenerate these").prune(),
-    safe("Saved").recovery("Unreal builds regenerate some of these").prune(),
-    safe("Binaries").recovery("Unreal builds regenerate these").prune(),
+    safe("Intermediate")
+        .recovery("Unreal builds regenerate these")
+        .prune(),
+    safe("Saved")
+        .recovery("Unreal builds regenerate some of these")
+        .prune(),
+    safe("Binaries")
+        .recovery("Unreal builds regenerate these")
+        .prune(),
 ];
 
 // Visual Studio
 static VISUAL_STUDIO_ARTIFACTS: &[ArtifactPath] = &[
-    safe(".vs").recovery("Visual Studio regenerates these").prune(),
-    safe(".ipch").recovery("Visual Studio regenerates these").prune(),
+    safe(".vs")
+        .recovery("Visual Studio regenerates these")
+        .prune(),
+    safe(".ipch")
+        .recovery("Visual Studio regenerates these")
+        .prune(),
 ];
 
 // Kotlin Multiplatform Mobile
@@ -346,25 +384,27 @@ static KMM_ARTIFACTS: &[ArtifactPath] = &[
 static NATIVESCRIPT_ARTIFACTS: &[ArtifactPath] = &[
     safe("platforms").recovery("ns build").size_mb(200, 4096),
     safe("hooks").recovery("ns build"),
-    safe("node_modules").recovery("npm install").size_mb(200, 4096),
+    safe("node_modules")
+        .recovery("npm install")
+        .size_mb(200, 4096),
 ];
 
 // Terraform
 // .terraform/     → Safe (provider plugins, re-downloadable)
 // *.tfstate       → Blocked (live infrastructure state, never touch)
 static TERRAFORM_ARTIFACTS: &[ArtifactPath] = &[
-    safe(".terraform").recovery("terraform init").size_mb(50, 500),
+    safe(".terraform")
+        .recovery("terraform init")
+        .size_mb(50, 500),
     safe(".terraform.lock.hcl").recovery("terraform init"),
     blocked("terraform.tfstate"),
     blocked("terraform.tfstate.backup"),
 ];
 
 // Pulumi
-static PULUMI_ARTIFACTS: &[ArtifactPath] = &[
-    ArtifactPath::new(".pulumi", SafetyTier::Caution)
-        .recovery("pulumi login")
-        .size_mb(10, 500),
-];
+static PULUMI_ARTIFACTS: &[ArtifactPath] = &[ArtifactPath::new(".pulumi", SafetyTier::Caution)
+    .recovery("pulumi login")
+    .size_mb(10, 500)];
 
 // Vagrant
 static VAGRANT_ARTIFACTS: &[ArtifactPath] = &[
@@ -403,26 +443,25 @@ static NX_ARTIFACTS: &[ArtifactPath] = &[
 // Global cache paths — keyed by a sentinel name, looked up by home-relative path
 // ─────────────────────────────────────────────────────────────────────────────
 
-static NPM_CACHE_ARTIFACTS: &[ArtifactPath] = &[
-    ArtifactPath::new(".npm/_cacache", SafetyTier::Safe)
+static NPM_CACHE_ARTIFACTS: &[ArtifactPath] =
+    &[ArtifactPath::new(".npm/_cacache", SafetyTier::Safe)
         .global()
         .recovery("npm install (auto-regenerated)")
-        .size_mb(200, 4096),
-];
+        .size_mb(200, 4096)];
 
-static YARN_CACHE_ARTIFACTS: &[ArtifactPath] = &[
-    ArtifactPath::new("Library/Caches/Yarn/v6", SafetyTier::Safe)
-        .global()
-        .recovery("yarn install (auto-regenerated)")
-        .size_mb(200, 4096),
-];
+static YARN_CACHE_ARTIFACTS: &[ArtifactPath] =
+    &[
+        ArtifactPath::new("Library/Caches/Yarn/v6", SafetyTier::Safe)
+            .global()
+            .recovery("yarn install (auto-regenerated)")
+            .size_mb(200, 4096),
+    ];
 
-static PNPM_STORE_ARTIFACTS: &[ArtifactPath] = &[
-    ArtifactPath::new("Library/pnpm/store/v3", SafetyTier::Safe)
+static PNPM_STORE_ARTIFACTS: &[ArtifactPath] =
+    &[ArtifactPath::new("Library/pnpm/store/v3", SafetyTier::Safe)
         .global()
         .recovery("pnpm install (auto-regenerated)")
-        .size_mb(500, 10240),
-];
+        .size_mb(500, 10240)];
 
 static CARGO_CACHE_ARTIFACTS: &[ArtifactPath] = &[
     ArtifactPath::new(".cargo/registry", SafetyTier::Safe)
@@ -445,19 +484,19 @@ static PIP_CACHE_ARTIFACTS: &[ArtifactPath] = &[
         .recovery("uv pip install (auto-downloaded)"),
 ];
 
-static POETRY_CACHE_ARTIFACTS: &[ArtifactPath] = &[
-    ArtifactPath::new("Library/Caches/pypoetry", SafetyTier::Safe)
-        .global()
-        .recovery("poetry install (auto-regenerated)")
-        .size_mb(200, 5120),
-];
+static POETRY_CACHE_ARTIFACTS: &[ArtifactPath] =
+    &[
+        ArtifactPath::new("Library/Caches/pypoetry", SafetyTier::Safe)
+            .global()
+            .recovery("poetry install (auto-regenerated)")
+            .size_mb(200, 5120),
+    ];
 
-static MAVEN_CACHE_ARTIFACTS: &[ArtifactPath] = &[
-    ArtifactPath::new(".m2/repository", SafetyTier::Safe)
+static MAVEN_CACHE_ARTIFACTS: &[ArtifactPath] =
+    &[ArtifactPath::new(".m2/repository", SafetyTier::Safe)
         .global()
         .recovery("mvn install (auto-downloaded)")
-        .size_mb(500, 5120),
-];
+        .size_mb(500, 5120)];
 
 static GRADLE_CACHE_ARTIFACTS: &[ArtifactPath] = &[
     ArtifactPath::new(".gradle/caches", SafetyTier::Safe)
@@ -483,33 +522,35 @@ static RUBYGEMS_ARTIFACTS: &[ArtifactPath] = &[
         .size_mb(200, 2048),
 ];
 
-static COMPOSER_CACHE_ARTIFACTS: &[ArtifactPath] = &[
-    ArtifactPath::new(".composer/cache", SafetyTier::Safe)
+static COMPOSER_CACHE_ARTIFACTS: &[ArtifactPath] =
+    &[ArtifactPath::new(".composer/cache", SafetyTier::Safe)
         .global()
         .recovery("composer install (auto-downloaded)")
-        .size_mb(100, 1024),
-];
+        .size_mb(100, 1024)];
 
-static HOMEBREW_CACHE_ARTIFACTS: &[ArtifactPath] = &[
-    ArtifactPath::new("Library/Caches/Homebrew", SafetyTier::Safe)
-        .global()
-        .recovery("brew install (auto-downloaded)")
-        .size_mb(200, 10240),
-];
+static HOMEBREW_CACHE_ARTIFACTS: &[ArtifactPath] =
+    &[
+        ArtifactPath::new("Library/Caches/Homebrew", SafetyTier::Safe)
+            .global()
+            .recovery("brew install (auto-downloaded)")
+            .size_mb(200, 10240),
+    ];
 
-static COCOAPODS_CACHE_ARTIFACTS: &[ArtifactPath] = &[
-    ArtifactPath::new("Library/Caches/CocoaPods", SafetyTier::Safe)
-        .global()
-        .recovery("pod install (auto-downloaded)")
-        .size_mb(200, 5120),
-];
+static COCOAPODS_CACHE_ARTIFACTS: &[ArtifactPath] =
+    &[
+        ArtifactPath::new("Library/Caches/CocoaPods", SafetyTier::Safe)
+            .global()
+            .recovery("pod install (auto-downloaded)")
+            .size_mb(200, 5120),
+    ];
 
-static CARTHAGE_CACHE_ARTIFACTS: &[ArtifactPath] = &[
-    ArtifactPath::new("Library/Caches/org.carthage.CarthageKit", SafetyTier::Safe)
-        .global()
-        .recovery("carthage update (auto-downloaded)")
-        .size_mb(100, 5120),
-];
+static CARTHAGE_CACHE_ARTIFACTS: &[ArtifactPath] =
+    &[
+        ArtifactPath::new("Library/Caches/org.carthage.CarthageKit", SafetyTier::Safe)
+            .global()
+            .recovery("carthage update (auto-downloaded)")
+            .size_mb(100, 5120),
+    ];
 
 static GO_CACHE_ARTIFACTS: &[ArtifactPath] = &[
     ArtifactPath::new("Library/Caches/go-build", SafetyTier::Safe)
@@ -532,42 +573,38 @@ static SWIFT_PM_CACHE_ARTIFACTS: &[ArtifactPath] = &[
         .recovery("swift package resolve"),
 ];
 
-static PUB_CACHE_ARTIFACTS: &[ArtifactPath] = &[
-    ArtifactPath::new(".pub-cache", SafetyTier::Safe)
-        .global()
-        .recovery("dart pub get (auto-downloaded)")
-        .size_mb(100, 4096),
-];
+static PUB_CACHE_ARTIFACTS: &[ArtifactPath] = &[ArtifactPath::new(".pub-cache", SafetyTier::Safe)
+    .global()
+    .recovery("dart pub get (auto-downloaded)")
+    .size_mb(100, 4096)];
 
-static MIX_CACHE_ARTIFACTS: &[ArtifactPath] = &[
-    ArtifactPath::new(".mix", SafetyTier::Safe)
-        .global()
-        .recovery("mix deps.get (auto-downloaded)")
-        .size_mb(50, 1024),
-];
+static MIX_CACHE_ARTIFACTS: &[ArtifactPath] = &[ArtifactPath::new(".mix", SafetyTier::Safe)
+    .global()
+    .recovery("mix deps.get (auto-downloaded)")
+    .size_mb(50, 1024)];
 
-static STACK_CACHE_ARTIFACTS: &[ArtifactPath] = &[
-    ArtifactPath::new(".stack", SafetyTier::Safe)
-        .global()
-        .recovery("stack build (auto-downloaded)")
-        .size_mb(500, 8192),
-];
+static STACK_CACHE_ARTIFACTS: &[ArtifactPath] = &[ArtifactPath::new(".stack", SafetyTier::Safe)
+    .global()
+    .recovery("stack build (auto-downloaded)")
+    .size_mb(500, 8192)];
 
 // Xcode: DerivedData (global, mapped back to projects by XcodeResolver)
-static XCODE_DERIVED_DATA_ARTIFACTS: &[ArtifactPath] = &[
-    ArtifactPath::new("Library/Developer/Xcode/DerivedData", SafetyTier::Safe)
-        .global()
-        .recovery("Xcode rebuilds automatically")
-        .size_mb(1024, 51200),
-];
+static XCODE_DERIVED_DATA_ARTIFACTS: &[ArtifactPath] =
+    &[
+        ArtifactPath::new("Library/Developer/Xcode/DerivedData", SafetyTier::Safe)
+            .global()
+            .recovery("Xcode rebuilds automatically")
+            .size_mb(1024, 51200),
+    ];
 
 // Xcode Archives — Caution because deleting prevents crash symbolication
-static XCODE_ARCHIVES_ARTIFACTS: &[ArtifactPath] = &[
-    ArtifactPath::new("Library/Developer/Xcode/Archives", SafetyTier::Caution)
-        .global()
-        .recovery("Cannot be regenerated — needed for crash symbolication of live releases")
-        .size_mb(100, 20480),
-];
+static XCODE_ARCHIVES_ARTIFACTS: &[ArtifactPath] =
+    &[
+        ArtifactPath::new("Library/Developer/Xcode/Archives", SafetyTier::Caution)
+            .global()
+            .recovery("Cannot be regenerated — needed for crash symbolication of live releases")
+            .size_mb(100, 20480),
+    ];
 
 // iOS Simulator caches (Safe) vs Devices (Caution — contain installed app sandboxes)
 static XCODE_SIMULATORS_ARTIFACTS: &[ArtifactPath] = &[
@@ -575,18 +612,22 @@ static XCODE_SIMULATORS_ARTIFACTS: &[ArtifactPath] = &[
         .global()
         .recovery("Downloaded automatically when simulator runtime is used")
         .size_mb(1024, 20480),
-    ArtifactPath::new("Library/Developer/CoreSimulator/Devices", SafetyTier::Caution)
-        .global()
-        .recovery("Simulator devices must be re-created and apps re-installed"),
+    ArtifactPath::new(
+        "Library/Developer/CoreSimulator/Devices",
+        SafetyTier::Caution,
+    )
+    .global()
+    .recovery("Simulator devices must be re-created and apps re-installed"),
 ];
 
 // DeviceSupport: extracted automatically when a device is connected
-static XCODE_DEVICE_SUPPORT_ARTIFACTS: &[ArtifactPath] = &[
-    ArtifactPath::new("Library/Developer/Xcode/iOS DeviceSupport", SafetyTier::Safe)
-        .global()
-        .recovery("Extracted automatically when the device is reconnected")
-        .size_mb(500, 10240),
-];
+static XCODE_DEVICE_SUPPORT_ARTIFACTS: &[ArtifactPath] = &[ArtifactPath::new(
+    "Library/Developer/Xcode/iOS DeviceSupport",
+    SafetyTier::Safe,
+)
+.global()
+.recovery("Extracted automatically when the device is reconnected")
+.size_mb(500, 10240)];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The full signature table
@@ -597,146 +638,186 @@ static XCODE_DEVICE_SUPPORT_ARTIFACTS: &[ArtifactPath] = &[
 /// a filename-indexed hash map — but keeping related ecosystems adjacent
 /// makes the list easier to maintain.
 pub static PROJECT_SIGNATURES: &[ProjectSignature] = &[
-
     // ── Node / JS ──────────────────────────────────────────────────────────
     sig("package.json", Ecosystem::NodeJs, NODE_ARTIFACTS),
     sig("package-lock.json", Ecosystem::NodeJs, NODE_ARTIFACTS),
     sig("yarn.lock", Ecosystem::NodeJs, NODE_ARTIFACTS),
     sig("pnpm-lock.yaml", Ecosystem::NodeJs, NODE_ARTIFACTS),
-    sig(".storybook",   Ecosystem::NodeJs, STORYBOOK_ARTIFACTS),
-    sig("bun.lockb",    Ecosystem::Bun,    BUN_ARTIFACTS),
-    sig("deno.json",    Ecosystem::Deno,   DENO_ARTIFACTS),
-    sig("deno.jsonc",   Ecosystem::Deno,   DENO_ARTIFACTS),
-
+    sig(".storybook", Ecosystem::NodeJs, STORYBOOK_ARTIFACTS),
+    sig("bun.lockb", Ecosystem::Bun, BUN_ARTIFACTS),
+    sig("deno.json", Ecosystem::Deno, DENO_ARTIFACTS),
+    sig("deno.jsonc", Ecosystem::Deno, DENO_ARTIFACTS),
     // ── Python ─────────────────────────────────────────────────────────────
-    sig("requirements.txt", Ecosystem::PythonPip,   PYTHON_PIP_ARTIFACTS),
-    sig("pyproject.toml",   Ecosystem::PythonPoetry, PYTHON_POETRY_ARTIFACTS),
-    sig("environment.yml",  Ecosystem::PythonConda,  CONDA_ARTIFACTS),
-    sig("setup.py",         Ecosystem::PythonPip,    PYTHON_PIP_ARTIFACTS),
+    sig(
+        "requirements.txt",
+        Ecosystem::PythonPip,
+        PYTHON_PIP_ARTIFACTS,
+    ),
+    sig(
+        "pyproject.toml",
+        Ecosystem::PythonPoetry,
+        PYTHON_POETRY_ARTIFACTS,
+    ),
+    sig("environment.yml", Ecosystem::PythonConda, CONDA_ARTIFACTS),
+    sig("setup.py", Ecosystem::PythonPip, PYTHON_PIP_ARTIFACTS),
     // manage.py distinguishes Django from plain Python; higher priority wins
-    sig_with("manage.py",   Ecosystem::Django,   DJANGO_ARTIFACTS, "django", 10, 45),
-
+    sig_with(
+        "manage.py",
+        Ecosystem::Django,
+        DJANGO_ARTIFACTS,
+        "django",
+        10,
+        45,
+    ),
     // ── Ruby ───────────────────────────────────────────────────────────────
     sig("Gemfile", Ecosystem::Ruby, RUBY_ARTIFACTS),
     // config/routes.rb identifies a Rails app; higher priority than Gemfile alone
-    sig_with("config/routes.rb", Ecosystem::Rails, RAILS_ARTIFACTS, "routes.draw", 10, 60),
-
+    sig_with(
+        "config/routes.rb",
+        Ecosystem::Rails,
+        RAILS_ARTIFACTS,
+        "routes.draw",
+        10,
+        60,
+    ),
     // ── PHP ────────────────────────────────────────────────────────────────
     sig("composer.json", Ecosystem::Php, PHP_COMPOSER_ARTIFACTS),
     // artisan file is unique to Laravel
-    sig_with("artisan", Ecosystem::Laravel, LARAVEL_ARTIFACTS, "laravel", 10, 30),
-
+    sig_with(
+        "artisan",
+        Ecosystem::Laravel,
+        LARAVEL_ARTIFACTS,
+        "laravel",
+        10,
+        30,
+    ),
     // ── Java / JVM ─────────────────────────────────────────────────────────
-    sig("pom.xml",          Ecosystem::JavaMaven,  MAVEN_ARTIFACTS),
-    sig("build.gradle",     Ecosystem::JavaGradle, GRADLE_ARTIFACTS),
-    sig("build.gradle.kts", Ecosystem::Kotlin,     KOTLIN_ARTIFACTS),
-    sig("build.sbt",        Ecosystem::Scala,      SCALA_ARTIFACTS),
-    sig("project.clj",      Ecosystem::Clojure,    CLOJURE_LEIN_ARTIFACTS),
-    sig("deps.edn",         Ecosystem::Clojure,    CLOJURE_DEPS_ARTIFACTS),
-
+    sig("pom.xml", Ecosystem::JavaMaven, MAVEN_ARTIFACTS),
+    sig("build.gradle", Ecosystem::JavaGradle, GRADLE_ARTIFACTS),
+    sig("build.gradle.kts", Ecosystem::Kotlin, KOTLIN_ARTIFACTS),
+    sig("build.sbt", Ecosystem::Scala, SCALA_ARTIFACTS),
+    sig("project.clj", Ecosystem::Clojure, CLOJURE_LEIN_ARTIFACTS),
+    sig("deps.edn", Ecosystem::Clojure, CLOJURE_DEPS_ARTIFACTS),
     // ── Go ─────────────────────────────────────────────────────────────────
     sig("go.mod", Ecosystem::Go, GO_ARTIFACTS),
-
     // ── Rust ───────────────────────────────────────────────────────────────
     sig("Cargo.toml", Ecosystem::Rust, RUST_ARTIFACTS),
-
     // ── C / C++ ────────────────────────────────────────────────────────────
     sig("CMakeLists.txt", Ecosystem::CCpp, CMAKE_ARTIFACTS),
-    sig("Makefile",       Ecosystem::CCpp, MAKEFILE_ARTIFACTS),
-    sig("meson.build",    Ecosystem::CCpp, &[safe("builddir").recovery("meson setup builddir")]),
-
+    sig("Makefile", Ecosystem::CCpp, MAKEFILE_ARTIFACTS),
+    sig(
+        "meson.build",
+        Ecosystem::CCpp,
+        &[safe("builddir").recovery("meson setup builddir")],
+    ),
     // ── Zig ────────────────────────────────────────────────────────────────
     sig("build.zig", Ecosystem::Zig, ZIG_ARTIFACTS),
-
     // ── Elixir ─────────────────────────────────────────────────────────────
-    sig("mix.exs",     Ecosystem::Elixir, ELIXIR_ARTIFACTS),
-    sig("rebar.config",Ecosystem::Elixir, REBAR_ARTIFACTS),
-
+    sig("mix.exs", Ecosystem::Elixir, ELIXIR_ARTIFACTS),
+    sig("rebar.config", Ecosystem::Elixir, REBAR_ARTIFACTS),
     // ── Haskell ────────────────────────────────────────────────────────────
-    sig("stack.yaml",    Ecosystem::Haskell, HASKELL_STACK_ARTIFACTS),
-
+    sig("stack.yaml", Ecosystem::Haskell, HASKELL_STACK_ARTIFACTS),
     // ── OCaml ──────────────────────────────────────────────────────────────
     sig("dune-project", Ecosystem::OCaml, OCAML_ARTIFACTS),
-    sig("*.opam",       Ecosystem::OCaml, OCAML_ARTIFACTS),
-
+    sig("*.opam", Ecosystem::OCaml, OCAML_ARTIFACTS),
     // ── F# ─────────────────────────────────────────────────────────────────
     sig("*.fsproj", Ecosystem::FSharp, FSHARP_ARTIFACTS),
-
     // ── Swift (SPM standalone) ─────────────────────────────────────────────
     sig("Package.swift", Ecosystem::SwiftSpm, SWIFT_SPM_ARTIFACTS),
-
     // ── Dart / Flutter ─────────────────────────────────────────────────────
     sig("pubspec.yaml", Ecosystem::Dart, DART_ARTIFACTS),
-    sig("melos.yaml",   Ecosystem::Dart, &[]),  // Melos detected by MonorepoResolver
-
+    sig("melos.yaml", Ecosystem::Dart, &[]), // Melos detected by MonorepoResolver
     // ── R ──────────────────────────────────────────────────────────────────
     sig("*.Rproj", Ecosystem::R, R_ARTIFACTS),
-
     // ── Nim ────────────────────────────────────────────────────────────────
     sig("*.nimble", Ecosystem::Nim, NIM_ARTIFACTS),
-
     // ── Crystal ────────────────────────────────────────────────────────────
     sig("shard.yml", Ecosystem::Crystal, CRYSTAL_ARTIFACTS),
-
     // ── D ──────────────────────────────────────────────────────────────────
     sig("dub.json", Ecosystem::D, D_ARTIFACTS),
-    sig("dub.sdl",  Ecosystem::D, D_ARTIFACTS),
-
+    sig("dub.sdl", Ecosystem::D, D_ARTIFACTS),
     // ── Groovy ─────────────────────────────────────────────────────────────
     sig("*.groovy", Ecosystem::Groovy, GROOVY_ARTIFACTS),
-
     // ── Mobile: React Native ───────────────────────────────────────────────
     // app.json with "react-native" anywhere in it → React Native
-    sig_with("app.json", Ecosystem::ReactNative, REACT_NATIVE_ARTIFACTS, "react-native", 20, 30),
-
+    sig_with(
+        "app.json",
+        Ecosystem::ReactNative,
+        REACT_NATIVE_ARTIFACTS,
+        "react-native",
+        20,
+        30,
+    ),
     // ── Mobile: Capacitor ──────────────────────────────────────────────────
-    sig("capacitor.config.json", Ecosystem::Capacitor, CAPACITOR_ARTIFACTS),
-    sig("ionic.config.json",     Ecosystem::Capacitor, CAPACITOR_ARTIFACTS),
-
+    sig(
+        "capacitor.config.json",
+        Ecosystem::Capacitor,
+        CAPACITOR_ARTIFACTS,
+    ),
+    sig(
+        "ionic.config.json",
+        Ecosystem::Capacitor,
+        CAPACITOR_ARTIFACTS,
+    ),
     // ── Mobile: Flutter ────────────────────────────────────────────────────
     // pubspec.yaml with "flutter:" → Flutter (higher priority than plain Dart)
-    sig_with("pubspec.yaml", Ecosystem::Flutter, FLUTTER_ARTIFACTS, "flutter:", 10, 30),
-
+    sig_with(
+        "pubspec.yaml",
+        Ecosystem::Flutter,
+        FLUTTER_ARTIFACTS,
+        "flutter:",
+        10,
+        30,
+    ),
     // ── Mobile: Android bare Gradle project ────────────────────────────────
-    sig_with("settings.gradle", Ecosystem::AndroidGradle, ANDROID_ARTIFACTS, "android", 5, 45),
-
+    sig_with(
+        "settings.gradle",
+        Ecosystem::AndroidGradle,
+        ANDROID_ARTIFACTS,
+        "android",
+        5,
+        45,
+    ),
     // ── Mobile: KMM ────────────────────────────────────────────────────────
-    sig_with("build.gradle.kts", Ecosystem::Kmm, KMM_ARTIFACTS, "multiplatform", 15, 45),
-
+    sig_with(
+        "build.gradle.kts",
+        Ecosystem::Kmm,
+        KMM_ARTIFACTS,
+        "multiplatform",
+        15,
+        45,
+    ),
     // ── Mobile: NativeScript ───────────────────────────────────────────────
-    sig("nsconfig.json", Ecosystem::NativeScript, NATIVESCRIPT_ARTIFACTS),
-
+    sig(
+        "nsconfig.json",
+        Ecosystem::NativeScript,
+        NATIVESCRIPT_ARTIFACTS,
+    ),
     // ── DevOps ─────────────────────────────────────────────────────────────
-    sig("*.tf",         Ecosystem::Terraform, TERRAFORM_ARTIFACTS),
-    sig("Pulumi.yaml",  Ecosystem::Pulumi,    PULUMI_ARTIFACTS),
-    sig("Vagrantfile",  Ecosystem::Vagrant,   VAGRANT_ARTIFACTS),
-
+    sig("*.tf", Ecosystem::Terraform, TERRAFORM_ARTIFACTS),
+    sig("Pulumi.yaml", Ecosystem::Pulumi, PULUMI_ARTIFACTS),
+    sig("Vagrantfile", Ecosystem::Vagrant, VAGRANT_ARTIFACTS),
     // ── Monorepo tooling ───────────────────────────────────────────────────
     // These trigger additional MonorepoResolver analysis; artifact lists
     // may be extended after resolution.
-    sig("turbo.json",          Ecosystem::Turborepo,    TURBO_ARTIFACTS),
-    sig("nx.json",             Ecosystem::Nx,           NX_ARTIFACTS),
+    sig("turbo.json", Ecosystem::Turborepo, TURBO_ARTIFACTS),
+    sig("nx.json", Ecosystem::Nx, NX_ARTIFACTS),
     sig("pnpm-workspace.yaml", Ecosystem::PnpmWorkspace, &[]),
-    sig("lerna.json",          Ecosystem::Lerna,         &[]),
-
+    sig("lerna.json", Ecosystem::Lerna, &[]),
     // ── .NET ──────────────────────────────────────────────────────────────
-    sig("*.sln",               Ecosystem::DotNet,       DOTNET_ARTIFACTS),
-    sig("*.csproj",            Ecosystem::DotNet,       DOTNET_ARTIFACTS),
-
+    sig("*.sln", Ecosystem::DotNet, DOTNET_ARTIFACTS),
+    sig("*.csproj", Ecosystem::DotNet, DOTNET_ARTIFACTS),
     // ── Bazel ─────────────────────────────────────────────────────────────
-    sig(".bazelrc",            Ecosystem::Bazel,         BAZEL_ARTIFACTS),
-    sig("BUILD",               Ecosystem::Bazel,         BAZEL_ARTIFACTS),
-    sig("WORKSPACE",           Ecosystem::Bazel,         BAZEL_ARTIFACTS),
-
+    sig(".bazelrc", Ecosystem::Bazel, BAZEL_ARTIFACTS),
+    sig("BUILD", Ecosystem::Bazel, BAZEL_ARTIFACTS),
+    sig("WORKSPACE", Ecosystem::Bazel, BAZEL_ARTIFACTS),
     // ── ML / Data Science ──────────────────────────────────────────────────
-    sig("mlruns",              Ecosystem::MLflow,        ML_ARTIFACTS),
-    sig("wandb",               Ecosystem::Wandb,         ML_ARTIFACTS),
-
+    sig("mlruns", Ecosystem::MLflow, ML_ARTIFACTS),
+    sig("wandb", Ecosystem::Wandb, ML_ARTIFACTS),
     // ── Unreal ────────────────────────────────────────────────────────────
-    sig("*.uproject",          Ecosystem::UnrealEngine, UNREAL_ARTIFACTS),
-
+    sig("*.uproject", Ecosystem::UnrealEngine, UNREAL_ARTIFACTS),
     // ── Visual Studio ─────────────────────────────────────────────────────
-    sig(".vs",                 Ecosystem::VisualStudio, VISUAL_STUDIO_ARTIFACTS),
+    sig(".vs", Ecosystem::VisualStudio, VISUAL_STUDIO_ARTIFACTS),
 ];
 
 /// Global cache signatures — keyed by a home-relative directory sentinel.
@@ -746,26 +827,54 @@ pub static GLOBAL_CACHE_SIGNATURES: &[ProjectSignature] = &[
     // Sentinel filenames are arbitrary for global caches — the detector uses
     // the artifact paths directly rather than looking for these filenames.
     // We reuse the ProjectSignature type for consistency.
-    sig("_cacache",             Ecosystem::NpmCache,     NPM_CACHE_ARTIFACTS),
-    sig("Yarn",                 Ecosystem::YarnCache,    YARN_CACHE_ARTIFACTS),
-    sig("pnpm",                 Ecosystem::PnpmStore,    PNPM_STORE_ARTIFACTS),
-    sig("cargo",                Ecosystem::CargoCache,   CARGO_CACHE_ARTIFACTS),
-    sig("pip",                  Ecosystem::PipCache,     PIP_CACHE_ARTIFACTS),
-    sig("pypoetry",             Ecosystem::PoetryCache,  POETRY_CACHE_ARTIFACTS),
-    sig("m2",                   Ecosystem::MavenCache,   MAVEN_CACHE_ARTIFACTS),
-    sig("gradle",               Ecosystem::GradleCache,  GRADLE_CACHE_ARTIFACTS),
-    sig("gem",                  Ecosystem::RubyGems,     RUBYGEMS_ARTIFACTS),
-    sig("composer",             Ecosystem::Composer,     COMPOSER_CACHE_ARTIFACTS),
-    sig("Homebrew",             Ecosystem::Homebrew,     HOMEBREW_CACHE_ARTIFACTS),
-    sig("CocoaPods",            Ecosystem::CocoaPodsCache, COCOAPODS_CACHE_ARTIFACTS),
-    sig("CarthageKit",          Ecosystem::CarthageCache,  CARTHAGE_CACHE_ARTIFACTS),
-    sig("go-build",             Ecosystem::GoCache,       GO_CACHE_ARTIFACTS),
-    sig("org.swift.swiftpm",    Ecosystem::SwiftPmCache,  SWIFT_PM_CACHE_ARTIFACTS),
-    sig("pub-cache",            Ecosystem::PubCache,      PUB_CACHE_ARTIFACTS),
-    sig("mix",                  Ecosystem::MixCache,      MIX_CACHE_ARTIFACTS),
-    sig("stack",                Ecosystem::StackCache,    STACK_CACHE_ARTIFACTS),
-    sig("DerivedData",          Ecosystem::Xcode,         XCODE_DERIVED_DATA_ARTIFACTS),
-    sig("Archives",             Ecosystem::XcodeArchives, XCODE_ARCHIVES_ARTIFACTS),
-    sig("CoreSimulator",        Ecosystem::XcodeSimulators, XCODE_SIMULATORS_ARTIFACTS),
-    sig("iOS DeviceSupport",    Ecosystem::XcodeDeviceSupport, XCODE_DEVICE_SUPPORT_ARTIFACTS),
+    sig("_cacache", Ecosystem::NpmCache, NPM_CACHE_ARTIFACTS),
+    sig("Yarn", Ecosystem::YarnCache, YARN_CACHE_ARTIFACTS),
+    sig("pnpm", Ecosystem::PnpmStore, PNPM_STORE_ARTIFACTS),
+    sig("cargo", Ecosystem::CargoCache, CARGO_CACHE_ARTIFACTS),
+    sig("pip", Ecosystem::PipCache, PIP_CACHE_ARTIFACTS),
+    sig("pypoetry", Ecosystem::PoetryCache, POETRY_CACHE_ARTIFACTS),
+    sig("m2", Ecosystem::MavenCache, MAVEN_CACHE_ARTIFACTS),
+    sig("gradle", Ecosystem::GradleCache, GRADLE_CACHE_ARTIFACTS),
+    sig("gem", Ecosystem::RubyGems, RUBYGEMS_ARTIFACTS),
+    sig("composer", Ecosystem::Composer, COMPOSER_CACHE_ARTIFACTS),
+    sig("Homebrew", Ecosystem::Homebrew, HOMEBREW_CACHE_ARTIFACTS),
+    sig(
+        "CocoaPods",
+        Ecosystem::CocoaPodsCache,
+        COCOAPODS_CACHE_ARTIFACTS,
+    ),
+    sig(
+        "CarthageKit",
+        Ecosystem::CarthageCache,
+        CARTHAGE_CACHE_ARTIFACTS,
+    ),
+    sig("go-build", Ecosystem::GoCache, GO_CACHE_ARTIFACTS),
+    sig(
+        "org.swift.swiftpm",
+        Ecosystem::SwiftPmCache,
+        SWIFT_PM_CACHE_ARTIFACTS,
+    ),
+    sig("pub-cache", Ecosystem::PubCache, PUB_CACHE_ARTIFACTS),
+    sig("mix", Ecosystem::MixCache, MIX_CACHE_ARTIFACTS),
+    sig("stack", Ecosystem::StackCache, STACK_CACHE_ARTIFACTS),
+    sig(
+        "DerivedData",
+        Ecosystem::Xcode,
+        XCODE_DERIVED_DATA_ARTIFACTS,
+    ),
+    sig(
+        "Archives",
+        Ecosystem::XcodeArchives,
+        XCODE_ARCHIVES_ARTIFACTS,
+    ),
+    sig(
+        "CoreSimulator",
+        Ecosystem::XcodeSimulators,
+        XCODE_SIMULATORS_ARTIFACTS,
+    ),
+    sig(
+        "iOS DeviceSupport",
+        Ecosystem::XcodeDeviceSupport,
+        XCODE_DEVICE_SUPPORT_ARTIFACTS,
+    ),
 ];

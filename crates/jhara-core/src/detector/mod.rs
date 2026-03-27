@@ -27,21 +27,24 @@
 // This two-pass design avoids re-scanning: the FTS walk happens once in
 // Phase 1 and the detector consumes its output.
 
+pub mod artifact_scan;
 pub mod frameworks;
+pub mod ghosts;
 pub mod monorepo;
+pub mod safety;
 pub mod signatures;
 pub mod types;
 pub mod xcode;
-pub mod ghosts;
-pub mod safety;
-pub mod artifact_scan;
-pub use artifact_scan::{ArtifactCandidate, ArtifactDetectionResult, ManifestMap, all_manifest_hints, find_artifact_rule, resolve_artifact_candidates};
+pub use artifact_scan::{
+    all_manifest_hints, find_artifact_rule, resolve_artifact_candidates, ArtifactCandidate,
+    ArtifactDetectionResult, ManifestMap,
+};
 
+pub use monorepo::{MonorepoInfo, MonorepoResolver};
 pub use types::{
     ArtifactPath, ArtifactPathOwned, DetectedProject, Ecosystem, FoundArtifact, MonorepoKind,
     MonorepoMembership, ProjectSignature, ProjectSignatureOwned, SafetyTier, XcodeProjectRef,
 };
-pub use monorepo::{MonorepoInfo, MonorepoResolver};
 pub use xcode::XcodeResolver;
 
 use std::collections::HashMap;
@@ -51,10 +54,10 @@ use std::time::SystemTime;
 
 use crate::error::JharaError;
 use frameworks::detect_framework_artifacts;
-use monorepo::OwnedArtifact;
-use signatures::{GLOBAL_CACHE_SIGNATURES, PROJECT_SIGNATURES};
-use safety::{evaluate_safety};
 use ghosts::discover_ghosts;
+use monorepo::OwnedArtifact;
+use safety::evaluate_safety;
+use signatures::{GLOBAL_CACHE_SIGNATURES, PROJECT_SIGNATURES};
 use types::SafetyRating;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -91,11 +94,8 @@ impl SignatureIndex {
     /// Returns all signatures whose filename matches `name`, ordered by
     /// priority descending (highest priority = most specific match wins).
     fn matches(&self, name: &str) -> Vec<&'static ProjectSignature> {
-        let mut results: Vec<&'static ProjectSignature> = self
-            .exact
-            .get(name)
-            .map(|v| v.iter().copied().collect())
-            .unwrap_or_default();
+        let mut results: Vec<&'static ProjectSignature> =
+            self.exact.get(name).map(|v| v.to_vec()).unwrap_or_default();
 
         for (ext, sig) in &self.suffix {
             if name.ends_with(ext) {
@@ -356,7 +356,11 @@ fn resolve_candidate(candidate: CandidateProject) -> Result<DetectedProject, Jha
     for gc in ghost_candidates {
         // If it's not already in the physical list, add it as a ghost
         if !artifacts.iter().any(|a| a.absolute_path == gc.path) {
-            let abs_ghost = if gc.path.is_absolute() { gc.path.clone() } else { root.join(&gc.path) };
+            let abs_ghost = if gc.path.is_absolute() {
+                gc.path.clone()
+            } else {
+                root.join(&gc.path)
+            };
             artifacts.push(FoundArtifact {
                 absolute_path: abs_ghost,
                 safety_tier: SafetyTier::Safe, // Ghosts are usually safe to "clean" (remove from history/ignore)
@@ -505,13 +509,20 @@ mod tests {
         assert_eq!(projects.len(), 1);
         let p = &projects[0];
         assert!(p.ecosystems.contains(&Ecosystem::NodeJs));
-        assert!(p.artifacts.iter().any(|a| a.absolute_path.ends_with("node_modules")));
+        assert!(p
+            .artifacts
+            .iter()
+            .any(|a| a.absolute_path.ends_with("node_modules")));
     }
 
     #[test]
     fn detects_next_js_framework_artifacts() {
         let tmp = TempDir::new().unwrap();
-        write(tmp.path(), "package.json", r#"{"dependencies": {"next": "14.0.0"}}"#);
+        write(
+            tmp.path(),
+            "package.json",
+            r#"{"dependencies": {"next": "14.0.0"}}"#,
+        );
         make_dir(tmp.path(), "node_modules");
         make_dir(tmp.path(), ".next");
 
@@ -521,7 +532,9 @@ mod tests {
 
         let p = &projects[0];
         assert!(
-            p.artifacts.iter().any(|a| a.absolute_path.ends_with(".next")),
+            p.artifacts
+                .iter()
+                .any(|a| a.absolute_path.ends_with(".next")),
             "Expected .next/ artifact for a Next.js project"
         );
     }
@@ -531,7 +544,11 @@ mod tests {
     #[test]
     fn detects_rust_project() {
         let tmp = TempDir::new().unwrap();
-        write(tmp.path(), "Cargo.toml", "[package]\nname = \"myapp\"\nversion = \"0.1.0\"\n");
+        write(
+            tmp.path(),
+            "Cargo.toml",
+            "[package]\nname = \"myapp\"\nversion = \"0.1.0\"\n",
+        );
         make_dir(tmp.path(), "target");
 
         let mut detector = ProjectDetector::new();
@@ -540,7 +557,10 @@ mod tests {
 
         assert_eq!(projects.len(), 1);
         assert!(projects[0].ecosystems.contains(&Ecosystem::Rust));
-        assert!(projects[0].artifacts.iter().any(|a| a.absolute_path.ends_with("target")));
+        assert!(projects[0]
+            .artifacts
+            .iter()
+            .any(|a| a.absolute_path.ends_with("target")));
     }
 
     // ── Python detection ──────────────────────────────────────────────────────
@@ -562,7 +582,13 @@ mod tests {
         let artifact_paths: Vec<_> = projects[0]
             .artifacts
             .iter()
-            .map(|a| a.absolute_path.file_name().unwrap().to_string_lossy().to_string())
+            .map(|a| {
+                a.absolute_path
+                    .file_name()
+                    .unwrap()
+                    .to_string_lossy()
+                    .to_string()
+            })
             .collect();
         assert!(artifact_paths.contains(&".venv".to_string()));
         assert!(artifact_paths.contains(&"__pycache__".to_string()));
@@ -573,7 +599,11 @@ mod tests {
     #[test]
     fn detects_go_project() {
         let tmp = TempDir::new().unwrap();
-        write(tmp.path(), "go.mod", "module github.com/example/myapp\n\ngo 1.21\n");
+        write(
+            tmp.path(),
+            "go.mod",
+            "module github.com/example/myapp\n\ngo 1.21\n",
+        );
 
         let mut detector = ProjectDetector::new();
         detector.observe(tmp.path(), "go.mod");
@@ -614,7 +644,11 @@ mod tests {
     fn content_key_required_for_django() {
         let tmp = TempDir::new().unwrap();
         // manage.py without "django" content → should not match Django
-        write(tmp.path(), "manage.py", "#!/usr/bin/env python3\nprint('hello')\n");
+        write(
+            tmp.path(),
+            "manage.py",
+            "#!/usr/bin/env python3\nprint('hello')\n",
+        );
 
         let mut detector = ProjectDetector::new();
         detector.observe(tmp.path(), "manage.py");
@@ -622,7 +656,9 @@ mod tests {
 
         // Should not detect Django because "django" is not in the file
         assert!(
-            !projects.iter().any(|p| p.ecosystems.contains(&Ecosystem::Django)),
+            !projects
+                .iter()
+                .any(|p| p.ecosystems.contains(&Ecosystem::Django)),
             "Django should not be detected without 'django' in manage.py content"
         );
     }
@@ -640,7 +676,9 @@ mod tests {
         detector.observe(tmp.path(), "manage.py");
         let projects = detector.resolve_all().unwrap();
 
-        assert!(projects.iter().any(|p| p.ecosystems.contains(&Ecosystem::Django)));
+        assert!(projects
+            .iter()
+            .any(|p| p.ecosystems.contains(&Ecosystem::Django)));
     }
 
     // ── staleness ─────────────────────────────────────────────────────────────
@@ -778,7 +816,11 @@ mod tests {
         detector.observe(tmp.path(), "package.json");
         let projects = detector.resolve_all().unwrap();
 
-        assert_eq!(projects.len(), 1, "Duplicate observations should produce exactly one project");
+        assert_eq!(
+            projects.len(),
+            1,
+            "Duplicate observations should produce exactly one project"
+        );
     }
 
     // ── Safety tier coverage ──────────────────────────────────────────────────

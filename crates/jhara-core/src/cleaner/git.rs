@@ -45,10 +45,10 @@ impl GitSessionCache {
             .output()?;
 
         if !output.status.success() {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!("Git status failed for {:?}", repo_path),
-            ));
+            return Err(io::Error::other(format!(
+                "Git status failed for {:?}",
+                repo_path
+            )));
         }
 
         // Non-empty output implies uncommitted changes

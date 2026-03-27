@@ -241,14 +241,14 @@ public final class AppState {
                     }
 
                     // ── Orphan detection (Apple Silicon only) ─────────────────────
-                    // NOTE: orphan detection uses a separate simple path-prefix check
-                    // that does not require Rust classification — kept in Swift intentionally.
+                    // Must run BEFORE releaseHandle — needs the live scan handle.
                     if orphanDetectionAvailable {
-                        // Orphans are detected from the scan handle, not nodeBuffer.
-                        // For now keep the existing approach via a direct path check —
-                        // this will be migrated to a Rust FFI call in a follow-up.
-                        detectedOrphans = []
+                        detectedOrphans = detectOrphans(handle: handle)
                     }
+
+                    // ── Release Rust handle — all FFI queries are done ────────────
+                    let capturedCoord = coord
+                    Task { await capturedCoord.releaseHandle() }
 
                     phase = .done
 
@@ -278,12 +278,32 @@ public final class AppState {
     }
 
     // MARK: - Apple Silicon orphan detection
-    // TODO: Migrate to jhara_core_orphan_scan_json once that FFI function is added.
-    // For now this is intentionally kept minimal — no Swift classification logic.
-    private func detectOrphans() -> [Artifact] {
-        // Orphan detection requires access to the raw scan results.
-        // Deferred until a dedicated FFI function is available.
-        return []
+
+    /// Queries the Rust engine for Intel (x86_64) Homebrew artifacts.
+    /// Only called on Apple Silicon; returns [] on Intel Macs (no orphans possible).
+    /// `handle` must still be alive — call before releaseHandle().
+    private func detectOrphans(handle: OpaquePointer) -> [Artifact] {
+        guard let jsonPtr = jhara_core_orphan_scan_json(handle) else { return [] }
+        defer { jhara_core_string_free(jsonPtr) }
+
+        guard let jsonStr = String(validatingUTF8: jsonPtr),
+              let data    = jsonStr.data(using: .utf8),
+              let decoded = try? JSONDecoder().decode([FoundArtifactDecoded].self, from: data)
+        else { return [] }
+
+        return decoded.compactMap { fa -> Artifact? in
+            guard let tier = swiftTier(from: fa.safety_tier) else { return nil }
+            return Artifact(
+                id:           UUID(),
+                path:         fa.absolute_path,
+
+                name:         URL(fileURLWithPath: fa.absolute_path).lastPathComponent,
+                size:         fa.physical_size_bytes,
+                tier:         tier,
+                reason:       fa.recovery_command ?? "Intel Homebrew artifact (x86_64 only)",
+                lastActivity: Date()
+            )
+        }.sorted { $0.size > $1.size }
     }
 }
 

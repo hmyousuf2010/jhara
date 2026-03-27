@@ -1,0 +1,114 @@
+# Labels
+
+# ── Type ──────────────────────────────────────────────────────────────────
+- name: bug
+  color: "d73a4a"
+  description: Something isn't working
+
+- name: enhancement
+  color: "a2eeef"
+  description: New feature or request
+
+- name: ecosystem
+  color: "0075ca"
+  description: New ecosystem / signature addition
+
+- name: performance
+  color: "e4e669"
+  description: Performance improvement with benchmarks
+
+- name: documentation
+  color: "0075ca"
+  description: Docs, comments, README
+
+- name: question
+  color: "d876e3"
+  description: Further information requested
+
+- name: security
+  color: "b60205"
+  description: Security vulnerability or concern
+
+# ── Status ────────────────────────────────────────────────────────────────
+- name: needs-triage
+  color: "ededed"
+  description: Not yet reviewed
+
+- name: needs-review
+  color: "fbca04"
+  description: Waiting for maintainer review
+
+- name: needs-more-info
+  color: "d4c5f9"
+  description: More information needed from reporter
+
+- name: in-progress
+  color: "0e8a16"
+  description: Actively being worked on
+
+- name: blocked
+  color: "e4e669"
+  description: Blocked on something else
+
+- name: stale
+  color: "cfd3d7"
+  description: Inactive for too long
+
+- name: pinned
+  color: "0052cc"
+  description: Should never go stale
+
+# ── Component ────────────────────────────────────────────────────────────
+- name: rust-core
+  color: "f28500"
+  description: jhara-core Rust crate
+
+- name: macos-app
+  color: "007aff"
+  description: Swift/SwiftUI macOS app
+
+- name: tauri-app
+  color: "24c8d8"
+  description: Tauri app (Linux/Windows)
+
+- name: web-dashboard
+  color: "6f42c1"
+  description: Next.js web dashboard and server
+
+- name: ffi
+  color: "d93f0b"
+  description: C FFI surface between Rust and Swift
+
+- name: ci-cd
+  color: "0e8a16"
+  description: GitHub Actions and build infrastructure
+
+# ── Priority ─────────────────────────────────────────────────────────────
+- name: priority:critical
+  color: "b60205"
+  description: Data loss or silent deletion risk
+
+- name: priority:high
+  color: "e11d48"
+  description: Significant user-facing impact
+
+- name: priority:medium
+  color: "f97316"
+  description: Normal priority
+
+- name: priority:low
+  color: "6b7280"
+  description: Nice to have when capacity allows
+
+# ── Release ───────────────────────────────────────────────────────────────
+- name: breaking-change
+  color: "b60205"
+  description: Public API or behavior change
+
+- name: good-first-issue
+  color: "7057ff"
+  description: Good for newcomers
+
+- name: help-wanted
+  color: "008672"
+  description: Extra attention needed, open to contributors

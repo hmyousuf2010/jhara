@@ -50,7 +50,10 @@ pub fn file_identity(meta: &Metadata) -> FileIdentity {
 // Fallback for non-Unix, non-Windows (e.g. Wasm, UEFI) — identity not available.
 #[cfg(not(any(unix, windows)))]
 pub fn file_identity(_meta: &Metadata) -> FileIdentity {
-    FileIdentity { device_id: 0, inode: 0 }
+    FileIdentity {
+        device_id: 0,
+        inode: 0,
+    }
 }
 
 // ─── Physical Size ────────────────────────────────────────────────────────────
@@ -63,7 +66,7 @@ pub fn file_identity(_meta: &Metadata) -> FileIdentity {
 pub fn physical_size(_path: &Path, meta: &Metadata) -> u64 {
     use std::os::unix::fs::MetadataExt;
     // st_blocks is in 512-byte units, regardless of filesystem block size.
-    (meta.blocks() * 512) as u64
+    meta.blocks() * 512
 }
 
 #[cfg(windows)]
@@ -96,10 +99,10 @@ pub fn physical_size_windows(path: &Path, meta: &Metadata) -> u64 {
     use std::os::windows::fs::MetadataExt;
 
     const RECALL_ON_DATA_ACCESS: u32 = 0x0040_0000;
-    const RECALL_ON_OPEN:        u32 = 0x0004_0000;
-    const OFFLINE:               u32 = 0x0000_1000;
-    const COMPRESSED:            u32 = 0x0000_0800;
-    const SPARSE:                u32 = 0x0000_0200;
+    const RECALL_ON_OPEN: u32 = 0x0004_0000;
+    const OFFLINE: u32 = 0x0000_1000;
+    const COMPRESSED: u32 = 0x0000_0800;
+    const SPARSE: u32 = 0x0000_0200;
 
     let attrs = meta.file_attributes();
 
@@ -140,8 +143,8 @@ pub fn query_cluster_size(_path: &Path) -> u64 {
 fn query_cluster_size_windows(path: &Path) -> u64 {
     use std::ffi::OsStr;
     use std::os::windows::ffi::OsStrExt;
-    use windows::Win32::Storage::FileSystem::GetDiskFreeSpaceW;
     use windows::core::PCWSTR;
+    use windows::Win32::Storage::FileSystem::GetDiskFreeSpaceW;
 
     // GetDiskFreeSpaceW needs the root of the volume, e.g. "C:\".
     let root = path

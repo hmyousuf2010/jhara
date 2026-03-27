@@ -2,6 +2,7 @@
 name    = "jhara-macos-ffi"
 version = "0.1.0"
 edition = "2021"
+license = "Apache-2.0"
 
 # Produce a C-compatible static library for Xcode.
 [lib]
@@ -9,5 +10,5 @@ name       = "jhara_macos_ffi"
 crate-type = ["staticlib"]
 
 [dependencies]
-jhara-core = { path = "../jhara-core" }
+jhara-core = { path = "../jhara-core", version = "0.1.0" }
 

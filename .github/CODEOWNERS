@@ -1,0 +1,21 @@
+# CODEOWNERS
+#
+# These users are automatically added as reviewers when PRs touch the listed paths.
+# The last matching rule wins. Paths are relative to repo root.
+
+# Default owner for everything
+* @hmyousuf
+
+# Rust core — safety classifications need careful review
+/crates/jhara-core/src/classifier/ @hmyousuf
+/crates/jhara-core/src/detector/signatures.rs @hmyousuf
+/crates/jhara-core/src/ffi/ @hmyousuf
+
+# macOS app
+/apps/macos/ @hmyousuf
+
+# CI/CD and release pipeline — changes here have wide impact
+/.github/workflows/ @hmyousuf
+
+# Security policy
+/SECURITY.md @hmyousuf
