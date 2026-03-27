@@ -2,7 +2,7 @@
   <h1>Jhara (ঝরা)</h1>
   <p><b>A disk cleaner for developers that actually understands what it's looking at.</b></p>
 
-  [![Status](https://img.shields.io/badge/Status-Pre--Alpha%20%2F%20Under%20Development-red.svg)](#development-status)
+  [![Status](https://img.shields.io/badge/Status-Alpha%20%2F%20In%20Development-orange.svg)](#development-status)
   [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg?logo=apache)](LICENSE)
   <br />
   [![Rust](https://img.shields.io/badge/Rust-1.77%2B-orange?logo=rust&logoColor=white)](#)
