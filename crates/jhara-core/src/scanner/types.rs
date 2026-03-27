@@ -77,7 +77,8 @@ pub struct ScanStats {
     /// Number of root directories that produced errors during traversal.
     pub error_count: u64,
     /// Artifact directory candidates found during single-pass detection.
-    pub artifact_candidates: std::sync::Arc<std::sync::Mutex<Vec<crate::detector::artifact_scan::ArtifactCandidate>>>,
+    pub artifact_candidates:
+        std::sync::Arc<std::sync::Mutex<Vec<crate::detector::artifact_scan::ArtifactCandidate>>>,
 }
 
 /// Errors that can be produced by `jhara-core`.

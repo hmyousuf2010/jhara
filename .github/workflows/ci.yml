@@ -165,16 +165,17 @@ jobs:
 
   # ── JS security audit ─────────────────────────────────────────────────────
   js-audit:
-    name: pnpm audit
+    name: JS Security Audit
     runs-on: ubuntu-24.04
     steps:
+      - uses: actions/checkout@v4
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
       - run: bun install --frozen-lockfile
-      - run: bun x bun-audit   # bun has native audit but let's use a standard one for now if needed, or just bun --audit
+      - run: bun x bun-audit
 
   # ── Final gate ────────────────────────────────────────────────────────────
   ci-pass:

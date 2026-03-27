@@ -42,8 +42,7 @@ pub struct FrameworkArtifact {
 
 impl FrameworkArtifact {
     pub fn to_artifact_path(&self) -> ArtifactPath {
-        ArtifactPath::new(self.relative_path, self.safety_tier)
-            .recovery(self.recovery_command)
+        ArtifactPath::new(self.relative_path, self.safety_tier).recovery(self.recovery_command)
     }
 }
 
@@ -98,14 +97,12 @@ static NUXT_ARTIFACTS: &[FrameworkArtifact] = &[
     },
 ];
 
-static SVELTEKIT_ARTIFACTS: &[FrameworkArtifact] = &[
-    FrameworkArtifact {
-        relative_path: ".svelte-kit",
-        safety_tier: SafetyTier::Safe,
-        ecosystem: Ecosystem::SvelteKit,
-        recovery_command: "svelte-kit build",
-    },
-];
+static SVELTEKIT_ARTIFACTS: &[FrameworkArtifact] = &[FrameworkArtifact {
+    relative_path: ".svelte-kit",
+    safety_tier: SafetyTier::Safe,
+    ecosystem: Ecosystem::SvelteKit,
+    recovery_command: "svelte-kit build",
+}];
 
 static ANGULAR_ARTIFACTS: &[FrameworkArtifact] = &[
     FrameworkArtifact {
@@ -182,14 +179,12 @@ static TANSTACK_ARTIFACTS: &[FrameworkArtifact] = &[
     },
 ];
 
-static SOLID_ARTIFACTS: &[FrameworkArtifact] = &[
-    FrameworkArtifact {
-        relative_path: "dist",
-        safety_tier: SafetyTier::Safe,
-        ecosystem: Ecosystem::Solid,
-        recovery_command: "vite build",
-    },
-];
+static SOLID_ARTIFACTS: &[FrameworkArtifact] = &[FrameworkArtifact {
+    relative_path: "dist",
+    safety_tier: SafetyTier::Safe,
+    ecosystem: Ecosystem::Solid,
+    recovery_command: "vite build",
+}];
 
 static QWIK_ARTIFACTS: &[FrameworkArtifact] = &[
     FrameworkArtifact {
@@ -244,34 +239,28 @@ static EMBER_ARTIFACTS: &[FrameworkArtifact] = &[
 
 // Vite is a bundler used by many frameworks. When detected without a more
 // specific framework, we include the standard dist/ output.
-static VITE_ARTIFACTS: &[FrameworkArtifact] = &[
-    FrameworkArtifact {
-        relative_path: "dist",
-        safety_tier: SafetyTier::Safe,
-        ecosystem: Ecosystem::Vite,
-        recovery_command: "vite build",
-    },
-];
+static VITE_ARTIFACTS: &[FrameworkArtifact] = &[FrameworkArtifact {
+    relative_path: "dist",
+    safety_tier: SafetyTier::Safe,
+    ecosystem: Ecosystem::Vite,
+    recovery_command: "vite build",
+}];
 
 // Webpack (used by many older projects and some CRA setups)
-static WEBPACK_CACHE_ARTIFACTS: &[FrameworkArtifact] = &[
-    FrameworkArtifact {
-        relative_path: "node_modules/.cache/webpack",
-        safety_tier: SafetyTier::Safe,
-        ecosystem: Ecosystem::NodeJs,
-        recovery_command: "webpack build (auto-regenerated)",
-    },
-];
+static WEBPACK_CACHE_ARTIFACTS: &[FrameworkArtifact] = &[FrameworkArtifact {
+    relative_path: "node_modules/.cache/webpack",
+    safety_tier: SafetyTier::Safe,
+    ecosystem: Ecosystem::NodeJs,
+    recovery_command: "webpack build (auto-regenerated)",
+}];
 
 // Turbopack (Next.js 13+ uses this internally)
-static TURBOPACK_CACHE_ARTIFACTS: &[FrameworkArtifact] = &[
-    FrameworkArtifact {
-        relative_path: "node_modules/.cache/turbopack",
-        safety_tier: SafetyTier::Safe,
-        ecosystem: Ecosystem::Next,
-        recovery_command: "next build (auto-regenerated)",
-    },
-];
+static TURBOPACK_CACHE_ARTIFACTS: &[FrameworkArtifact] = &[FrameworkArtifact {
+    relative_path: "node_modules/.cache/turbopack",
+    safety_tier: SafetyTier::Safe,
+    ecosystem: Ecosystem::Next,
+    recovery_command: "next build (auto-regenerated)",
+}];
 
 // Parcel
 static PARCEL_ARTIFACTS: &[FrameworkArtifact] = &[
@@ -290,50 +279,99 @@ static PARCEL_ARTIFACTS: &[FrameworkArtifact] = &[
 ];
 
 // NestJS (Node.js backend framework — produces dist/ like a frontend bundler)
-static NESTJS_ARTIFACTS: &[FrameworkArtifact] = &[
-    FrameworkArtifact {
-        relative_path: "dist",
-        safety_tier: SafetyTier::Safe,
-        ecosystem: Ecosystem::NestJs,
-        recovery_command: "nest build",
-    },
-];
+static NESTJS_ARTIFACTS: &[FrameworkArtifact] = &[FrameworkArtifact {
+    relative_path: "dist",
+    safety_tier: SafetyTier::Safe,
+    ecosystem: Ecosystem::NestJs,
+    recovery_command: "nest build",
+}];
 
 // Turborepo (monorepo tool — adds .turbo/ cache at the workspace level)
 // Detected via turbo.json in signatures.rs; these are the package-level caches
-static TURBO_PKG_ARTIFACTS: &[FrameworkArtifact] = &[
-    FrameworkArtifact {
-        relative_path: ".turbo",
-        safety_tier: SafetyTier::Safe,
-        ecosystem: Ecosystem::Turborepo,
-        recovery_command: "turbo build (auto-regenerated)",
-    },
-];
+static TURBO_PKG_ARTIFACTS: &[FrameworkArtifact] = &[FrameworkArtifact {
+    relative_path: ".turbo",
+    safety_tier: SafetyTier::Safe,
+    ecosystem: Ecosystem::Turborepo,
+    recovery_command: "turbo build (auto-regenerated)",
+}];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Rule table
 // ─────────────────────────────────────────────────────────────────────────────
 
 static FRAMEWORK_RULES: &[FrameworkRule] = &[
-    FrameworkRule { package_keys: &["next"],                               artifacts: NEXT_ARTIFACTS },
-    FrameworkRule { package_keys: &["nuxt", "nuxt3"],                     artifacts: NUXT_ARTIFACTS },
-    FrameworkRule { package_keys: &["@sveltejs/kit"],                     artifacts: SVELTEKIT_ARTIFACTS },
-    FrameworkRule { package_keys: &["@angular/core"],                     artifacts: ANGULAR_ARTIFACTS },
-    FrameworkRule { package_keys: &["gatsby"],                            artifacts: GATSBY_ARTIFACTS },
-    FrameworkRule { package_keys: &["@remix-run/react", "@remix-run/node", "@remix-run/serve"],
-                                                                           artifacts: REMIX_ARTIFACTS },
-    FrameworkRule { package_keys: &["astro"],                             artifacts: ASTRO_ARTIFACTS },
-    FrameworkRule { package_keys: &["@tanstack/start"],                   artifacts: TANSTACK_ARTIFACTS },
-    FrameworkRule { package_keys: &["solid-js"],                          artifacts: SOLID_ARTIFACTS },
-    FrameworkRule { package_keys: &["@builder.io/qwik"],                  artifacts: QWIK_ARTIFACTS },
-    FrameworkRule { package_keys: &["@stencil/core"],                     artifacts: STENCIL_ARTIFACTS },
-    FrameworkRule { package_keys: &["ember-cli"],                         artifacts: EMBER_ARTIFACTS },
-    FrameworkRule { package_keys: &["vite"],                              artifacts: VITE_ARTIFACTS },
-    FrameworkRule { package_keys: &["webpack", "webpack-cli"],            artifacts: WEBPACK_CACHE_ARTIFACTS },
-    FrameworkRule { package_keys: &["parcel"],                            artifacts: PARCEL_ARTIFACTS },
-    FrameworkRule { package_keys: &["@nestjs/core"],                      artifacts: NESTJS_ARTIFACTS },
-    FrameworkRule { package_keys: &["turbo"],                             artifacts: TURBO_PKG_ARTIFACTS },
-    FrameworkRule { package_keys: &["next", "@next/bundle-analyzer"],     artifacts: TURBOPACK_CACHE_ARTIFACTS },
+    FrameworkRule {
+        package_keys: &["next"],
+        artifacts: NEXT_ARTIFACTS,
+    },
+    FrameworkRule {
+        package_keys: &["nuxt", "nuxt3"],
+        artifacts: NUXT_ARTIFACTS,
+    },
+    FrameworkRule {
+        package_keys: &["@sveltejs/kit"],
+        artifacts: SVELTEKIT_ARTIFACTS,
+    },
+    FrameworkRule {
+        package_keys: &["@angular/core"],
+        artifacts: ANGULAR_ARTIFACTS,
+    },
+    FrameworkRule {
+        package_keys: &["gatsby"],
+        artifacts: GATSBY_ARTIFACTS,
+    },
+    FrameworkRule {
+        package_keys: &["@remix-run/react", "@remix-run/node", "@remix-run/serve"],
+        artifacts: REMIX_ARTIFACTS,
+    },
+    FrameworkRule {
+        package_keys: &["astro"],
+        artifacts: ASTRO_ARTIFACTS,
+    },
+    FrameworkRule {
+        package_keys: &["@tanstack/start"],
+        artifacts: TANSTACK_ARTIFACTS,
+    },
+    FrameworkRule {
+        package_keys: &["solid-js"],
+        artifacts: SOLID_ARTIFACTS,
+    },
+    FrameworkRule {
+        package_keys: &["@builder.io/qwik"],
+        artifacts: QWIK_ARTIFACTS,
+    },
+    FrameworkRule {
+        package_keys: &["@stencil/core"],
+        artifacts: STENCIL_ARTIFACTS,
+    },
+    FrameworkRule {
+        package_keys: &["ember-cli"],
+        artifacts: EMBER_ARTIFACTS,
+    },
+    FrameworkRule {
+        package_keys: &["vite"],
+        artifacts: VITE_ARTIFACTS,
+    },
+    FrameworkRule {
+        package_keys: &["webpack", "webpack-cli"],
+        artifacts: WEBPACK_CACHE_ARTIFACTS,
+    },
+    FrameworkRule {
+        package_keys: &["parcel"],
+        artifacts: PARCEL_ARTIFACTS,
+    },
+    FrameworkRule {
+        package_keys: &["@nestjs/core"],
+        artifacts: NESTJS_ARTIFACTS,
+    },
+    FrameworkRule {
+        package_keys: &["turbo"],
+        artifacts: TURBO_PKG_ARTIFACTS,
+    },
+    FrameworkRule {
+        package_keys: &["next", "@next/bundle-analyzer"],
+        artifacts: TURBOPACK_CACHE_ARTIFACTS,
+    },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -500,7 +538,10 @@ mod tests {
     fn returns_empty_for_invalid_json() {
         let f = write_package_json("this is not json");
         let artifacts = detect_framework_artifacts(f.path());
-        assert!(artifacts.is_empty(), "Should silently return empty for malformed JSON");
+        assert!(
+            artifacts.is_empty(),
+            "Should silently return empty for malformed JSON"
+        );
     }
 
     #[test]
@@ -522,14 +563,16 @@ mod tests {
         // Every framework-specific artifact should be Safe — they are all
         // build outputs that can be regenerated. If a Caution or Risky
         // artifact ever ends up here it is almost certainly a mistake.
-        let f = write_package_json(r#"{
+        let f = write_package_json(
+            r#"{
             "dependencies": {
                 "next": "14.0.0",
                 "nuxt": "3.0.0",
                 "@sveltejs/kit": "2.0.0",
                 "gatsby": "5.0.0"
             }
-        }"#);
+        }"#,
+        );
         let artifacts = detect_framework_artifacts(f.path());
         for a in &artifacts {
             assert_eq!(

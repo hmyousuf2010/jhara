@@ -66,7 +66,11 @@ impl Blocklist {
         // This is the most expensive check, done last.
         if !self.path_suffixes.is_empty() {
             let path_str = path.to_string_lossy();
-            if self.path_suffixes.iter().any(|suffix| path_str.ends_with(suffix)) {
+            if self
+                .path_suffixes
+                .iter()
+                .any(|suffix| path_str.ends_with(suffix))
+            {
                 return true;
             }
         }

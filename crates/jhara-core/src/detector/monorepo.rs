@@ -194,8 +194,8 @@ impl MonorepoResolver {
             return Ok(None);
         }
 
-        let content = fs::read(&pkg_path)
-            .map_err(|e| JharaError::io(pkg_path.to_string_lossy(), e))?;
+        let content =
+            fs::read(&pkg_path).map_err(|e| JharaError::io(pkg_path.to_string_lossy(), e))?;
 
         // We only need to know if "workspaces" key exists in the JSON.
         // Parse just enough to check this without allocating the full value tree.
@@ -216,17 +216,15 @@ impl MonorepoResolver {
         Ok(Some(MonorepoInfo {
             kind,
             root: dir.to_path_buf(),
-            shared_artifacts: vec![
-                OwnedArtifact {
-                    relative_path: "node_modules".to_string(),
-                    safety_tier: SafetyTier::Safe,
-                    ecosystem: Ecosystem::NodeJs,
-                    recovery_command: Some(match kind {
-                        MonorepoKind::YarnWorkspace => "yarn install".to_string(),
-                        _ => "npm install".to_string(),
-                    }),
-                },
-            ],
+            shared_artifacts: vec![OwnedArtifact {
+                relative_path: "node_modules".to_string(),
+                safety_tier: SafetyTier::Safe,
+                ecosystem: Ecosystem::NodeJs,
+                recovery_command: Some(match kind {
+                    MonorepoKind::YarnWorkspace => "yarn install".to_string(),
+                    _ => "npm install".to_string(),
+                }),
+            }],
         }))
     }
 
@@ -272,14 +270,12 @@ impl MonorepoResolver {
         MonorepoInfo {
             kind: MonorepoKind::Melos,
             root: root.to_path_buf(),
-            shared_artifacts: vec![
-                OwnedArtifact {
-                    relative_path: ".dart_tool".to_string(),
-                    safety_tier: SafetyTier::Safe,
-                    ecosystem: Ecosystem::Dart,
-                    recovery_command: Some("melos bootstrap".to_string()),
-                },
-            ],
+            shared_artifacts: vec![OwnedArtifact {
+                relative_path: ".dart_tool".to_string(),
+                safety_tier: SafetyTier::Safe,
+                ecosystem: Ecosystem::Dart,
+                recovery_command: Some("melos bootstrap".to_string()),
+            }],
         }
     }
 }
@@ -339,8 +335,8 @@ impl OwnedArtifact {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::TempDir;
     use std::io::Write;
+    use tempfile::TempDir;
 
     fn write_file(dir: &Path, name: &str, content: &str) {
         let path = dir.join(name);
@@ -363,11 +359,15 @@ mod tests {
         let info = result.unwrap();
         assert_eq!(info.kind, MonorepoKind::Turborepo);
         assert!(
-            info.shared_artifacts.iter().any(|a| a.relative_path == ".turbo"),
+            info.shared_artifacts
+                .iter()
+                .any(|a| a.relative_path == ".turbo"),
             "Expected .turbo artifact"
         );
         assert!(
-            info.shared_artifacts.iter().any(|a| a.relative_path == "node_modules/.cache/turbo"),
+            info.shared_artifacts
+                .iter()
+                .any(|a| a.relative_path == "node_modules/.cache/turbo"),
             "Expected turbo node_modules cache artifact"
         );
     }
@@ -383,7 +383,10 @@ mod tests {
         assert!(result.is_some());
         let info = result.unwrap();
         assert_eq!(info.kind, MonorepoKind::Nx);
-        assert!(info.shared_artifacts.iter().any(|a| a.relative_path == ".nx/cache"));
+        assert!(info
+            .shared_artifacts
+            .iter()
+            .any(|a| a.relative_path == ".nx/cache"));
     }
 
     // ── PNPM workspace ───────────────────────────────────────────────────────
@@ -391,7 +394,11 @@ mod tests {
     #[test]
     fn detects_pnpm_workspace() {
         let tmp = TempDir::new().unwrap();
-        write_file(tmp.path(), "pnpm-workspace.yaml", "packages:\n  - 'apps/*'\n");
+        write_file(
+            tmp.path(),
+            "pnpm-workspace.yaml",
+            "packages:\n  - 'apps/*'\n",
+        );
 
         let result = MonorepoResolver::resolve(tmp.path()).unwrap();
         assert!(result.is_some());
@@ -403,7 +410,11 @@ mod tests {
     #[test]
     fn detects_npm_workspace() {
         let tmp = TempDir::new().unwrap();
-        write_file(tmp.path(), "package.json", r#"{"name": "root", "workspaces": ["packages/*"]}"#);
+        write_file(
+            tmp.path(),
+            "package.json",
+            r#"{"name": "root", "workspaces": ["packages/*"]}"#,
+        );
 
         let result = MonorepoResolver::resolve(tmp.path()).unwrap();
         assert!(result.is_some());
@@ -417,7 +428,11 @@ mod tests {
     #[test]
     fn detects_yarn_workspace() {
         let tmp = TempDir::new().unwrap();
-        write_file(tmp.path(), "package.json", r#"{"workspaces": ["packages/*"]}"#);
+        write_file(
+            tmp.path(),
+            "package.json",
+            r#"{"workspaces": ["packages/*"]}"#,
+        );
         write_file(tmp.path(), "yarn.lock", "");
 
         let result = MonorepoResolver::resolve(tmp.path()).unwrap();
@@ -430,14 +445,20 @@ mod tests {
     #[test]
     fn detects_cargo_workspace() {
         let tmp = TempDir::new().unwrap();
-        write_file(tmp.path(), "Cargo.toml", "[workspace]\nmembers = [\"crates/*\"]\n");
+        write_file(
+            tmp.path(),
+            "Cargo.toml",
+            "[workspace]\nmembers = [\"crates/*\"]\n",
+        );
 
         let result = MonorepoResolver::resolve(tmp.path()).unwrap();
         assert!(result.is_some());
         let info = result.unwrap();
         assert_eq!(info.kind, MonorepoKind::CargoWorkspace);
         assert!(
-            info.shared_artifacts.iter().any(|a| a.relative_path == "target"),
+            info.shared_artifacts
+                .iter()
+                .any(|a| a.relative_path == "target"),
             "Expected single shared target/ for Cargo workspace"
         );
     }
@@ -445,10 +466,17 @@ mod tests {
     #[test]
     fn plain_cargo_toml_is_not_workspace() {
         let tmp = TempDir::new().unwrap();
-        write_file(tmp.path(), "Cargo.toml", "[package]\nname = \"myapp\"\nversion = \"0.1.0\"\n");
+        write_file(
+            tmp.path(),
+            "Cargo.toml",
+            "[package]\nname = \"myapp\"\nversion = \"0.1.0\"\n",
+        );
 
         let result = MonorepoResolver::resolve(tmp.path()).unwrap();
-        assert!(result.is_none(), "A plain Cargo.toml without [workspace] should not match");
+        assert!(
+            result.is_none(),
+            "A plain Cargo.toml without [workspace] should not match"
+        );
     }
 
     // ── Lerna ────────────────────────────────────────────────────────────────
@@ -493,11 +521,18 @@ mod tests {
     #[test]
     fn returns_none_for_plain_project() {
         let tmp = TempDir::new().unwrap();
-        write_file(tmp.path(), "package.json", r#"{"name": "plain-app", "version": "1.0.0"}"#);
+        write_file(
+            tmp.path(),
+            "package.json",
+            r#"{"name": "plain-app", "version": "1.0.0"}"#,
+        );
         write_file(tmp.path(), "index.js", "console.log('hello')");
 
         let result = MonorepoResolver::resolve(tmp.path()).unwrap();
-        assert!(result.is_none(), "Plain project without workspace config should not match");
+        assert!(
+            result.is_none(),
+            "Plain project without workspace config should not match"
+        );
     }
 
     // ── membership_for ───────────────────────────────────────────────────────
@@ -510,7 +545,10 @@ mod tests {
 
         let sub_pkg = tmp.path().join("packages").join("ui");
         let membership = info.membership_for(&sub_pkg);
-        assert!(membership.is_some(), "Sub-package should be recognized as a member");
+        assert!(
+            membership.is_some(),
+            "Sub-package should be recognized as a member"
+        );
         assert_eq!(membership.unwrap().kind, MonorepoKind::Turborepo);
     }
 

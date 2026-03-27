@@ -4,8 +4,8 @@ pub mod platform;
 pub mod tree;
 pub mod types;
 
-pub use types::{NodeKind, ScanError, ScanNode, ScanStats};
 pub use tree::ScanTree;
+pub use types::{NodeKind, ScanError, ScanNode, ScanStats};
 
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
@@ -14,7 +14,6 @@ use std::sync::Arc;
 
 use jwalk::WalkDirGeneric;
 use rayon::prelude::*;
-
 
 use inode::InodeTracker;
 use platform::{file_identity, modification_time, physical_size, query_cluster_size};
@@ -114,20 +113,16 @@ where
     }
 
     let cancelled = Arc::new(AtomicBool::new(false));
-    let handle = ScanHandle { cancelled: Arc::clone(&cancelled) };
+    let handle = ScanHandle {
+        cancelled: Arc::clone(&cancelled),
+    };
 
     let skip_list = Arc::new(config.skip_list);
     let prune_names = Arc::new(config.prune_names);
-    let callback  = Arc::new(callback);
+    let callback = Arc::new(callback);
 
     // Collect stats across all root scans
-    let stats = scan_roots(
-        config.roots,
-        skip_list,
-        prune_names,
-        callback,
-        cancelled,
-    );
+    let stats = scan_roots(config.roots, skip_list, prune_names, callback, cancelled);
 
     Ok((handle, stats))
 }
@@ -154,10 +149,7 @@ fn scan_roots(
 
     // Query cluster size once per root (Windows only; returns 4096 on Unix).
     // Stored alongside the root device for use in physical_size().
-    let cluster_sizes: Vec<u64> = roots
-        .iter()
-        .map(|root| query_cluster_size(root))
-        .collect();
+    let cluster_sizes: Vec<u64> = roots.iter().map(|root| query_cluster_size(root)).collect();
 
     // Scan all roots in parallel using rayon.
     // Each root gets its own InodeTracker — hard-link dedup is per-root.
@@ -183,15 +175,17 @@ fn scan_roots(
         .collect();
 
     // Merge per-root stats into a single aggregate
-    per_root_stats.into_iter().fold(ScanStats::default(), |mut acc, s| {
-        acc.total_entries          += s.total_entries;
-        acc.total_physical_bytes   += s.total_physical_bytes;
-        acc.total_logical_bytes    += s.total_logical_bytes;
-        acc.deduped_entries        += s.deduped_entries;
-        acc.skipped_cloud_entries  += s.skipped_cloud_entries;
-        acc.error_count            += s.error_count;
-        acc
-    })
+    per_root_stats
+        .into_iter()
+        .fold(ScanStats::default(), |mut acc, s| {
+            acc.total_entries += s.total_entries;
+            acc.total_physical_bytes += s.total_physical_bytes;
+            acc.total_logical_bytes += s.total_logical_bytes;
+            acc.deduped_entries += s.deduped_entries;
+            acc.skipped_cloud_entries += s.skipped_cloud_entries;
+            acc.error_count += s.error_count;
+            acc
+        })
 }
 
 /// Scan a single root directory tree.
@@ -208,17 +202,17 @@ fn scan_single_root(
     callback: &(impl Fn(Vec<ScanNode>) + Send + Sync),
     cancelled: &AtomicBool,
 ) -> ScanStats {
-    let mut stats   = ScanStats::default();
+    let mut stats = ScanStats::default();
     let mut tracker = InodeTracker::default();
     let mut batch: Vec<ScanNode> = Vec::with_capacity(BATCH_SIZE);
 
     // `WalkDirGeneric` with `((), ())` state — we don't use the client state
     // feature, but the type parameter is required.
     let walker = WalkDirGeneric::<((), ())>::new(root)
-        .follow_links(false)   // FTS_PHYSICAL parity: never follow symlinks
-        .skip_hidden(false)    // Developer caches live in dotfiles (.cargo, .npm…)
+        .follow_links(false) // FTS_PHYSICAL parity: never follow symlinks
+        .skip_hidden(false) // Developer caches live in dotfiles (.cargo, .npm…)
         .process_read_dir({
-            let skip_list   = skip_list.clone();
+            let skip_list = skip_list.clone();
             let skip_list_owned: HashSet<PathBuf> = skip_list.iter().cloned().collect();
             let prune_names_owned: HashSet<String> = prune_names.iter().cloned().collect();
             move |_depth, dir_path, _state, children| {
@@ -241,7 +235,8 @@ fn scan_single_root(
                     if entry.file_type().is_dir() {
                         if let Ok(meta) = entry.metadata() {
                             let id = file_identity(&meta);
-                            if root_device != 0 && id.device_id != 0 && id.device_id != root_device {
+                            if root_device != 0 && id.device_id != 0 && id.device_id != root_device
+                            {
                                 return false; // different volume — prune
                             }
                         }
@@ -343,10 +338,7 @@ fn scan_single_root(
 
         let (mod_secs, mod_nanos) = modification_time(&meta);
 
-        let name = entry
-            .file_name()
-            .to_string_lossy()
-            .into_owned();
+        let name = entry.file_name().to_string_lossy().into_owned();
 
         let node = ScanNode {
             path: entry.path().to_path_buf(),
@@ -363,12 +355,15 @@ fn scan_single_root(
 
         stats.total_entries += 1;
         stats.total_physical_bytes += phys;
-        stats.total_logical_bytes  += meta.len();
+        stats.total_logical_bytes += meta.len();
 
         batch.push(node);
 
         if batch.len() >= BATCH_SIZE {
-            callback(std::mem::replace(&mut batch, Vec::with_capacity(BATCH_SIZE)));
+            callback(std::mem::replace(
+                &mut batch,
+                Vec::with_capacity(BATCH_SIZE),
+            ));
         }
     }
 
@@ -446,7 +441,10 @@ mod tests {
         let (nodes, stats) = collect_scan(tmp.path());
         let paths: Vec<_> = nodes.iter().map(|n| n.name.clone()).collect();
         assert!(paths.contains(&"main.rs".to_string()), "main.rs not found");
-        assert!(paths.contains(&"Cargo.toml".to_string()), "Cargo.toml not found");
+        assert!(
+            paths.contains(&"Cargo.toml".to_string()),
+            "Cargo.toml not found"
+        );
         assert!(stats.total_entries > 0);
     }
 
@@ -471,7 +469,8 @@ mod tests {
         let mut skip_list = HashSet::new();
         skip_list.insert(skip_dir.clone());
 
-        let nodes: Arc<std::sync::Mutex<Vec<ScanNode>>> = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let nodes: Arc<std::sync::Mutex<Vec<ScanNode>>> =
+            Arc::new(std::sync::Mutex::new(Vec::new()));
         let nodes_cb = Arc::clone(&nodes);
         let config = ScanConfig {
             roots: vec![tmp.path().to_path_buf()],
@@ -483,9 +482,20 @@ mod tests {
         })
         .unwrap();
 
-        let names: Vec<_> = nodes.lock().unwrap().iter().map(|n| n.name.clone()).collect();
-        assert!(names.contains(&"visible.txt".to_string()), "visible.txt should appear");
-        assert!(!names.contains(&"secret.txt".to_string()), "secret.txt should be skipped");
+        let names: Vec<_> = nodes
+            .lock()
+            .unwrap()
+            .iter()
+            .map(|n| n.name.clone())
+            .collect();
+        assert!(
+            names.contains(&"visible.txt".to_string()),
+            "visible.txt should appear"
+        );
+        assert!(
+            !names.contains(&"secret.txt".to_string()),
+            "secret.txt should be skipped"
+        );
     }
 
     #[test]
@@ -519,14 +529,16 @@ mod tests {
 
     #[test]
     fn hard_link_dedup_counts_once() {
-        #[cfg(unix)] {
+        #[cfg(unix)]
+        {
             let tmp = TempDir::new().unwrap();
             let original = tmp.path().join("original.txt");
-            let linked   = tmp.path().join("linked.txt");
+            let linked = tmp.path().join("linked.txt");
             fs::write(&original, b"shared content").unwrap();
             std::fs::hard_link(&original, &linked).unwrap();
 
-            let nodes: Arc<std::sync::Mutex<Vec<ScanNode>>> = Arc::new(std::sync::Mutex::new(Vec::new()));
+            let nodes: Arc<std::sync::Mutex<Vec<ScanNode>>> =
+                Arc::new(std::sync::Mutex::new(Vec::new()));
             let nodes_cb = Arc::clone(&nodes);
             let config = ScanConfig {
                 roots: vec![tmp.path().to_path_buf()],
@@ -543,14 +555,19 @@ mod tests {
                 .iter()
                 .filter(|n| n.kind == NodeKind::File && n.physical_size == 0)
                 .collect();
-            assert_eq!(zero_size_files.len(), 1, "exactly one hard link should be deduped");
+            assert_eq!(
+                zero_size_files.len(),
+                1,
+                "exactly one hard link should be deduped"
+            );
             assert_eq!(stats.deduped_entries, 1);
         }
     }
 
     #[test]
     fn symlinks_are_not_followed() {
-        #[cfg(unix)] {
+        #[cfg(unix)]
+        {
             let tmp = TempDir::new().unwrap();
             let real_dir = tmp.path().join("real");
             fs::create_dir_all(&real_dir).unwrap();
@@ -559,7 +576,8 @@ mod tests {
             let link_dir = tmp.path().join("link_to_real");
             std::os::unix::fs::symlink(&real_dir, &link_dir).unwrap();
 
-            let nodes: Arc<std::sync::Mutex<Vec<ScanNode>>> = Arc::new(std::sync::Mutex::new(Vec::new()));
+            let nodes: Arc<std::sync::Mutex<Vec<ScanNode>>> =
+                Arc::new(std::sync::Mutex::new(Vec::new()));
             let nodes_cb = Arc::clone(&nodes);
             let config = ScanConfig {
                 roots: vec![tmp.path().to_path_buf()],
@@ -571,9 +589,18 @@ mod tests {
             .unwrap();
 
             // `inside.txt` should appear once (via `real/`), not twice
-            let names: Vec<_> = nodes.lock().unwrap().iter().map(|n| n.name.clone()).collect();
+            let names: Vec<_> = nodes
+                .lock()
+                .unwrap()
+                .iter()
+                .map(|n| n.name.clone())
+                .collect();
             let count = names.iter().filter(|n| n.as_str() == "inside.txt").count();
-            assert_eq!(count, 1, "symlink followed — inside.txt found {} times", count);
+            assert_eq!(
+                count, 1,
+                "symlink followed — inside.txt found {} times",
+                count
+            );
 
             // The symlink entry itself should be NodeKind::Symlink
             let symlink_entries: Vec<_> = nodes
@@ -593,7 +620,8 @@ mod tests {
         let empty = tmp.path().join("empty_dir");
         fs::create_dir_all(&empty).unwrap();
 
-        let nodes: Arc<std::sync::Mutex<Vec<ScanNode>>> = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let nodes: Arc<std::sync::Mutex<Vec<ScanNode>>> =
+            Arc::new(std::sync::Mutex::new(Vec::new()));
         let nodes_cb = Arc::clone(&nodes);
         let config = ScanConfig {
             roots: vec![empty.clone()],
@@ -606,8 +634,14 @@ mod tests {
 
         let nodes = nodes.lock().unwrap();
         // The root itself should appear as DirPre
-        let dirs: Vec<_> = nodes.iter().filter(|n| n.kind == NodeKind::DirPre).collect();
-        assert!(!dirs.is_empty(), "expected at least one DirPre for the root");
+        let dirs: Vec<_> = nodes
+            .iter()
+            .filter(|n| n.kind == NodeKind::DirPre)
+            .collect();
+        assert!(
+            !dirs.is_empty(),
+            "expected at least one DirPre for the root"
+        );
     }
 
     #[test]
@@ -621,7 +655,8 @@ mod tests {
         let mut prune_names = HashSet::new();
         prune_names.insert("target".to_string());
 
-        let nodes: Arc<std::sync::Mutex<Vec<ScanNode>>> = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let nodes: Arc<std::sync::Mutex<Vec<ScanNode>>> =
+            Arc::new(std::sync::Mutex::new(Vec::new()));
         let nodes_cb = Arc::clone(&nodes);
         let config = ScanConfig {
             roots: vec![tmp.path().to_path_buf()],
@@ -633,9 +668,23 @@ mod tests {
         })
         .unwrap();
 
-        let names: Vec<_> = nodes.lock().unwrap().iter().map(|n| n.name.clone()).collect();
-        assert!(names.contains(&"main.rs".to_string()), "main.rs should be found");
-        assert!(names.contains(&"target".to_string()), "target dir itself should be found");
-        assert!(!names.contains(&"debug_binary".to_string()), "target children should be pruned");
+        let names: Vec<_> = nodes
+            .lock()
+            .unwrap()
+            .iter()
+            .map(|n| n.name.clone())
+            .collect();
+        assert!(
+            names.contains(&"main.rs".to_string()),
+            "main.rs should be found"
+        );
+        assert!(
+            names.contains(&"target".to_string()),
+            "target dir itself should be found"
+        );
+        assert!(
+            !names.contains(&"debug_binary".to_string()),
+            "target children should be pruned"
+        );
     }
 }

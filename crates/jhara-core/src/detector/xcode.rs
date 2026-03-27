@@ -186,9 +186,15 @@ mod tests {
         let plist_path = dir.join("info.plist");
         let mut dict = Dictionary::new();
         if let Some(path) = workspace_path {
-            dict.insert("WorkspacePath".to_string(), plist::Value::String(path.to_string()));
+            dict.insert(
+                "WorkspacePath".to_string(),
+                plist::Value::String(path.to_string()),
+            );
         }
-        dict.insert("LastAccessedDate".to_string(), plist::Value::String("2024-01-01".to_string()));
+        dict.insert(
+            "LastAccessedDate".to_string(),
+            plist::Value::String("2024-01-01".to_string()),
+        );
         let value = plist::Value::Dictionary(dict);
         // Write as XML plist (human-readable in tests)
         value.to_file_xml(&plist_path).unwrap();
@@ -214,7 +220,10 @@ mod tests {
         write_info_plist(&dd_dir, Some(project_dir.to_str().unwrap()));
 
         let result = XcodeResolver::resolve(&dd_dir).unwrap();
-        assert!(!result.is_orphaned, "Project exists on disk; should not be orphaned");
+        assert!(
+            !result.is_orphaned,
+            "Project exists on disk; should not be orphaned"
+        );
         assert_eq!(result.project_path.unwrap(), project_dir);
         assert_eq!(result.derived_data_path, dd_dir);
     }
@@ -225,14 +234,17 @@ mod tests {
     fn marks_orphaned_when_project_does_not_exist() {
         let (_tmp, dd_dir) = make_derived_data_dir("DeletedApp-abcdef1234567890");
 
-        write_info_plist(
-            &dd_dir,
-            Some("/Users/dev/DeletedApp/DeletedApp.xcodeproj"),
-        );
+        write_info_plist(&dd_dir, Some("/Users/dev/DeletedApp/DeletedApp.xcodeproj"));
 
         let result = XcodeResolver::resolve(&dd_dir).unwrap();
-        assert!(result.is_orphaned, "Project path does not exist; should be orphaned");
-        assert!(result.project_path.is_some(), "project_path should be Some even when orphaned");
+        assert!(
+            result.is_orphaned,
+            "Project path does not exist; should be orphaned"
+        );
+        assert!(
+            result.project_path.is_some(),
+            "project_path should be Some even when orphaned"
+        );
     }
 
     // ── resolve: no info.plist ────────────────────────────────────────────────
@@ -277,8 +289,15 @@ mod tests {
         std::fs::create_dir_all(&util).unwrap();
 
         let refs = XcodeResolver::resolve_all(derived_data_root);
-        assert_eq!(refs.len(), 3, "Should resolve 3 hash-named entries, skipping ModuleCache");
-        assert!(refs.iter().all(|r| r.is_orphaned), "All three have nonexistent project paths");
+        assert_eq!(
+            refs.len(),
+            3,
+            "Should resolve 3 hash-named entries, skipping ModuleCache"
+        );
+        assert!(
+            refs.iter().all(|r| r.is_orphaned),
+            "All three have nonexistent project paths"
+        );
     }
 
     // ── orphaned_size_bytes ───────────────────────────────────────────────────
@@ -298,7 +317,10 @@ mod tests {
         write!(f, "{}", "x".repeat(4096)).unwrap();
 
         let size = XcodeResolver::orphaned_size_bytes(derived_data_root);
-        assert!(size > 0, "Orphaned directory should contribute non-zero bytes");
+        assert!(
+            size > 0,
+            "Orphaned directory should contribute non-zero bytes"
+        );
     }
 
     // ── XcodeProjectRef fields ────────────────────────────────────────────────

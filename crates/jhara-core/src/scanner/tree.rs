@@ -118,14 +118,14 @@ impl ScanTree {
         self.path_index.insert(node.path.clone(), idx);
 
         self.nodes.push(TreeNode {
-            name:              Ustr::from(&node.name),
+            name: Ustr::from(&node.name),
             parent_idx,
-            physical_size:     node.physical_size,
-            logical_size:      node.logical_size,
+            physical_size: node.physical_size,
+            logical_size: node.logical_size,
             modification_secs: node.modification_secs,
-            child_count:       0,
-            kind:              node.kind,
-            path:              node.path,
+            child_count: 0,
+            kind: node.kind,
+            path: node.path,
         });
     }
 
@@ -157,10 +157,10 @@ impl ScanTree {
     pub fn rollup(&mut self) {
         for i in (1..self.nodes.len()).rev() {
             let phys = self.nodes[i].physical_size;
-            let log  = self.nodes[i].logical_size;
+            let log = self.nodes[i].logical_size;
             if let Some(parent_idx) = self.nodes[i].parent_idx {
                 self.nodes[parent_idx].physical_size += phys;
-                self.nodes[parent_idx].logical_size  += log;
+                self.nodes[parent_idx].logical_size += log;
             }
         }
     }
@@ -170,12 +170,16 @@ impl ScanTree {
     /// Must be called *after* `rollup()`. Returns `None` if `path` is not
     /// in the tree.
     pub fn physical_size(&self, path: &Path) -> Option<u64> {
-        self.path_index.get(path).map(|&idx| self.nodes[idx].physical_size)
+        self.path_index
+            .get(path)
+            .map(|&idx| self.nodes[idx].physical_size)
     }
 
     /// Return the total logical size of the subtree rooted at `path`.
     pub fn logical_size(&self, path: &Path) -> Option<u64> {
-        self.path_index.get(path).map(|&idx| self.nodes[idx].logical_size)
+        self.path_index
+            .get(path)
+            .map(|&idx| self.nodes[idx].logical_size)
     }
 
     /// Return the node at `path`, or `None` if not present.
@@ -186,7 +190,9 @@ impl ScanTree {
     /// Iterate over the direct children of `path`.
     pub fn children(&self, path: &Path) -> impl Iterator<Item = &TreeNode> {
         let parent_idx = self.path_index.get(path).copied();
-        self.nodes.iter().filter(move |n| n.parent_idx == parent_idx && parent_idx.is_some())
+        self.nodes
+            .iter()
+            .filter(move |n| n.parent_idx == parent_idx && parent_idx.is_some())
     }
 
     /// Remove an entire subtree rooted at `path` from the tree.
@@ -198,7 +204,9 @@ impl ScanTree {
     /// for incremental updates where the tree is typically already built.
     /// If the subtree covers millions of nodes, consider a full re-scan instead.
     pub fn invalidate_subtree(&mut self, path: &Path) {
-        let Some(&root_idx) = self.path_index.get(path) else { return };
+        let Some(&root_idx) = self.path_index.get(path) else {
+            return;
+        };
 
         // Collect all indices that are descendants of root_idx.
         // A node at index j is a descendant if, following parent_idx links,
@@ -226,7 +234,8 @@ impl ScanTree {
         // Mark nodes for removal by setting kind to a sentinel — we cannot
         // remove from the Vec mid-iteration without invalidating indices.
         // Rebuild the Vec and path_index from the survivors.
-        let survivors: Vec<TreeNode> = self.nodes
+        let survivors: Vec<TreeNode> = self
+            .nodes
             .drain(..)
             .enumerate()
             .filter(|(i, _)| !is_descendant[*i])
@@ -260,9 +269,9 @@ impl ScanTree {
     pub fn approximate_heap_bytes(&self) -> usize {
         let nodes_bytes = self.nodes.len() * std::mem::size_of::<TreeNode>();
         // HashMap overhead: roughly 2× the number of entries
-        let index_bytes = self.path_index.len() * (
-            std::mem::size_of::<PathBuf>() + std::mem::size_of::<usize>()
-        ) * 2;
+        let index_bytes = self.path_index.len()
+            * (std::mem::size_of::<PathBuf>() + std::mem::size_of::<usize>())
+            * 2;
         nodes_bytes + index_bytes
     }
 }
@@ -315,11 +324,15 @@ mod tests {
         //     /project/target/binary (file, 1 MB)
         //   /project/src (dir)
         //     /project/src/main.rs (file, 4 KB)
-        tree.insert(make_node("/project",               0,           NodeKind::DirPre));
-        tree.insert(make_node("/project/target",        0,           NodeKind::DirPre));
-        tree.insert(make_node("/project/target/binary", 1_048_576,   NodeKind::File));
-        tree.insert(make_node("/project/src",           0,           NodeKind::DirPre));
-        tree.insert(make_node("/project/src/main.rs",   4_096,       NodeKind::File));
+        tree.insert(make_node("/project", 0, NodeKind::DirPre));
+        tree.insert(make_node("/project/target", 0, NodeKind::DirPre));
+        tree.insert(make_node(
+            "/project/target/binary",
+            1_048_576,
+            NodeKind::File,
+        ));
+        tree.insert(make_node("/project/src", 0, NodeKind::DirPre));
+        tree.insert(make_node("/project/src/main.rs", 4_096, NodeKind::File));
         tree.rollup();
 
         let root_phys = tree.physical_size(Path::new("/project")).unwrap();
@@ -332,10 +345,10 @@ mod tests {
     #[test]
     fn rollup_does_not_double_count() {
         let mut tree = ScanTree::default();
-        tree.insert(make_node("/a",       0,    NodeKind::DirPre));
-        tree.insert(make_node("/a/b",     0,    NodeKind::DirPre));
-        tree.insert(make_node("/a/b/f1", 100,   NodeKind::File));
-        tree.insert(make_node("/a/b/f2", 200,   NodeKind::File));
+        tree.insert(make_node("/a", 0, NodeKind::DirPre));
+        tree.insert(make_node("/a/b", 0, NodeKind::DirPre));
+        tree.insert(make_node("/a/b/f1", 100, NodeKind::File));
+        tree.insert(make_node("/a/b/f2", 200, NodeKind::File));
         tree.rollup();
 
         // /a/b should be 300, /a should also be 300
@@ -352,11 +365,11 @@ mod tests {
     #[test]
     fn invalidate_subtree_removes_descendants() {
         let mut tree = ScanTree::default();
-        tree.insert(make_node("/root",                 0,   NodeKind::DirPre));
-        tree.insert(make_node("/root/keep",            0,   NodeKind::DirPre));
-        tree.insert(make_node("/root/keep/file.txt", 100,   NodeKind::File));
-        tree.insert(make_node("/root/remove",          0,   NodeKind::DirPre));
-        tree.insert(make_node("/root/remove/stale", 5000,   NodeKind::File));
+        tree.insert(make_node("/root", 0, NodeKind::DirPre));
+        tree.insert(make_node("/root/keep", 0, NodeKind::DirPre));
+        tree.insert(make_node("/root/keep/file.txt", 100, NodeKind::File));
+        tree.insert(make_node("/root/remove", 0, NodeKind::DirPre));
+        tree.insert(make_node("/root/remove/stale", 5000, NodeKind::File));
 
         tree.invalidate_subtree(Path::new("/root/remove"));
 
@@ -376,13 +389,15 @@ mod tests {
     #[test]
     fn insert_batch_equivalent_to_individual_inserts() {
         let nodes_a = vec![
-            make_node("/p",       0,   NodeKind::DirPre),
+            make_node("/p", 0, NodeKind::DirPre),
             make_node("/p/f.txt", 512, NodeKind::File),
         ];
         let nodes_b = nodes_a.clone();
 
         let mut tree_a = ScanTree::default();
-        for n in nodes_a { tree_a.insert(n); }
+        for n in nodes_a {
+            tree_a.insert(n);
+        }
         tree_a.rollup();
 
         let mut tree_b = ScanTree::default();

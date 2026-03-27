@@ -26,13 +26,13 @@
 /// is a no-op.
 pub mod types;
 
+use crate::classifier::RuleEngine;
+use crate::cleaner::DeletionCoordinator;
 use std::ffi::{c_char, c_void, CStr};
-use std::ptr;
 use std::path::PathBuf;
+use std::ptr;
 use std::sync::Arc;
 use types::{ScanNodeBatchC, ScanNodeOwned};
-use crate::classifier::RuleEngine;
-use crate::cleaner::{DeletionCoordinator};
 
 /// Callback type for asynchronous scan results.
 pub type JharaScanCallback = unsafe extern "C" fn(batch: ScanNodeBatchC, ctx: *mut c_void);
@@ -120,12 +120,12 @@ unsafe fn c_string_array(ptr: *const *const c_char, count: usize) -> Vec<String>
 /// The `callback` must be thread-safe (may be called from multiple threads).
 // #[no_mangle] — exported via jhara-macos-ffi shim only
 pub unsafe extern "C" fn jhara_core_scan_start(
-    roots:       *const *const c_char,
-    root_count:  usize,
-    skip_list:   *const *const c_char,
-    skip_count:  usize,
-    callback:    extern "C" fn(batch: ScanNodeBatchC, ctx: *mut c_void),
-    ctx:         *mut c_void,
+    roots: *const *const c_char,
+    root_count: usize,
+    skip_list: *const *const c_char,
+    skip_count: usize,
+    callback: extern "C" fn(batch: ScanNodeBatchC, ctx: *mut c_void),
+    ctx: *mut c_void,
 ) -> *mut JharaScanHandle {
     // Validate mandatory inputs.
     if roots.is_null() || root_count == 0 {
@@ -140,10 +140,10 @@ pub unsafe extern "C" fn jhara_core_scan_start(
     let skip_strings = c_string_array(skip_list, skip_count);
 
     let handle = Box::new(JharaScanHandle {
-        _roots:    root_strings.clone(),
+        _roots: root_strings.clone(),
         _skip_list: skip_strings.clone(),
-        cancelled:  Arc::new(std::sync::atomic::AtomicBool::new(false)),
-        results:    Arc::new(std::sync::Mutex::new(Vec::new())),
+        cancelled: Arc::new(std::sync::atomic::AtomicBool::new(false)),
+        results: Arc::new(std::sync::Mutex::new(Vec::new())),
         callback_addr: callback as usize,
         context: ctx as usize,
     });
@@ -170,10 +170,10 @@ pub unsafe extern "C" fn jhara_core_scan_start(
             stale_threshold_days: 60,
             prune_names: std::collections::HashSet::new(),
         };
-        
+
         // Add default prunes
         config.prune_names.insert(".git".to_string());
-        
+
         // Populate prunes from signature database
         for sig in crate::detector::signatures::PROJECT_SIGNATURES {
             for art in sig.artifact_paths {
@@ -186,11 +186,12 @@ pub unsafe extern "C" fn jhara_core_scan_start(
         let _ = crate::scanner::scan(config, move |batch| {
             // Check for cancellation
             if cancelled_for_scan.load(std::sync::atomic::Ordering::Relaxed) {
-                return; 
+                return;
             }
 
             // Convert back to function pointer and context
-            let callback: JharaScanCallback = unsafe { std::mem::transmute(callback_addr as *const c_void) };
+            let callback: JharaScanCallback =
+                unsafe { std::mem::transmute(callback_addr as *const c_void) };
             let ctx = context_usize as *mut c_void;
 
             // Per-batch string allocation: collect owned CStrings first so
@@ -224,9 +225,9 @@ pub unsafe extern "C" fn jhara_core_scan_start(
                     .flat_map(|sig| sig.artifact_paths.iter())
                     .find(|art| art.relative_path == name_str)
                     .map(|art| match art.safety_tier {
-                        crate::detector::SafetyTier::Safe    => 0,
+                        crate::detector::SafetyTier::Safe => 0,
                         crate::detector::SafetyTier::Caution => 1,
-                        crate::detector::SafetyTier::Risky   => 2,
+                        crate::detector::SafetyTier::Risky => 2,
                         crate::detector::SafetyTier::Blocked => 3,
                     })
                     .unwrap_or(255); // 255 = not a known artifact
@@ -330,7 +331,7 @@ pub unsafe extern "C" fn jhara_core_scan_free(handle: *mut JharaScanHandle) {
 // #[no_mangle] — exported via jhara-macos-ffi shim only
 pub unsafe extern "C" fn jhara_core_tree_physical_size(
     handle: *mut JharaScanHandle,
-    path:   *const c_char,
+    path: *const c_char,
 ) -> i64 {
     if handle.is_null() || path.is_null() {
         return -1;
@@ -338,12 +339,12 @@ pub unsafe extern "C" fn jhara_core_tree_physical_size(
 
     let query = match c_str_to_string(path) {
         Some(s) => s,
-        None    => return -1,
+        None => return -1,
     };
 
     let results = match (*handle).results.lock() {
         Ok(guard) => guard,
-        Err(_)    => return -1,
+        Err(_) => return -1,
     };
 
     let total: i64 = results
@@ -367,10 +368,7 @@ pub unsafe extern "C" fn jhara_core_tree_physical_size(
 /// # Safety
 /// `paths` must be a valid array of NUL-terminated strings.
 // #[no_mangle] — exported via jhara-macos-ffi shim only
-pub unsafe extern "C" fn jhara_core_delete_paths(
-    paths: *const *const c_char,
-    count: usize,
-) -> i32 {
+pub unsafe extern "C" fn jhara_core_delete_paths(paths: *const *const c_char, count: usize) -> i32 {
     if paths.is_null() || count == 0 {
         return -1;
     }
@@ -387,16 +385,14 @@ pub unsafe extern "C" fn jhara_core_delete_paths(
 /// Classifies a project at the given root.
 /// Returns a JSON string (caller must free with `jhara_core_string_free`).
 // #[no_mangle] — exported via jhara-macos-ffi shim only
-pub unsafe extern "C" fn jhara_core_project_classify(
-    project_root: *const c_char,
-) -> *mut c_char {
+pub unsafe extern "C" fn jhara_core_project_classify(project_root: *const c_char) -> *mut c_char {
     let root_str = match c_str_to_string(project_root) {
         Some(s) => s,
         None => return ptr::null_mut(),
     };
 
     let root_path = PathBuf::from(root_str);
-    
+
     // 1. Detect
     let detector = crate::detector::ProjectDetector::new();
     let projects = match detector.detect_at(&root_path) {
@@ -425,7 +421,9 @@ pub unsafe extern "C" fn jhara_core_project_classify(
 /// Frees a string allocated by the core library (e.g. from `jhara_core_project_classify`).
 // #[no_mangle] — exported via jhara-macos-ffi shim only
 pub unsafe extern "C" fn jhara_core_string_free(s: *mut c_char) {
-    if s.is_null() { return; }
+    if s.is_null() {
+        return;
+    }
     let _ = std::ffi::CString::from_raw(s);
 }
 
@@ -527,7 +525,7 @@ pub unsafe extern "C" fn jhara_core_projects_results_json(
 /// `home_dir` must be a valid NUL-terminated UTF-8 C string.
 // #[no_mangle] — exported via jhara-macos-ffi shim only
 pub unsafe extern "C" fn jhara_core_global_caches_json(
-    handle:   *const JharaScanHandle,
+    handle: *const JharaScanHandle,
     home_dir: *const c_char,
 ) -> *mut c_char {
     if handle.is_null() || home_dir.is_null() {
@@ -537,14 +535,17 @@ pub unsafe extern "C" fn jhara_core_global_caches_json(
 
     let home_str = match c_str_to_string(home_dir) {
         Some(s) => s,
-        None    => return ptr::null_mut(),
+        None => return ptr::null_mut(),
     };
     let home_path = std::path::PathBuf::from(home_str);
 
     // ── Build size lookup from accumulated scan results ────────────────────
     let size_map: std::collections::HashMap<String, i64> = match h.results.lock() {
-        Ok(guard) => guard.iter().map(|n| (n.path.clone(), n.physical_size)).collect(),
-        Err(_)    => return ptr::null_mut(),
+        Ok(guard) => guard
+            .iter()
+            .map(|n| (n.path.clone(), n.physical_size))
+            .collect(),
+        Err(_) => return ptr::null_mut(),
     };
 
     // ── Detect global caches via the Rust engine ───────────────────────────
@@ -604,7 +605,7 @@ pub unsafe extern "C" fn jhara_core_orphan_scan_json(
     ];
 
     let results_guard = match h.results.lock() {
-        Ok(g)  => g,
+        Ok(g) => g,
         Err(_) => return ptr::null_mut(),
     };
 
@@ -614,7 +615,9 @@ pub unsafe extern "C" fn jhara_core_orphan_scan_json(
     // formula rather than thousands of individual files.
     let mut grouped: std::collections::HashMap<String, i64> = std::collections::HashMap::new();
     for node in results_guard.iter() {
-        let is_intel = INTEL_PREFIXES.iter().any(|prefix| node.path.starts_with(prefix));
+        let is_intel = INTEL_PREFIXES
+            .iter()
+            .any(|prefix| node.path.starts_with(prefix));
         if !is_intel {
             continue;
         }
@@ -707,14 +710,7 @@ mod tests {
         let ctx = Arc::as_ptr(&counter) as *mut c_void;
 
         let handle = unsafe {
-            jhara_core_scan_start(
-                roots_arr.as_ptr(),
-                1,
-                ptr::null(),
-                0,
-                count_batches,
-                ctx,
-            )
+            jhara_core_scan_start(roots_arr.as_ptr(), 1, ptr::null(), 0, count_batches, ctx)
         };
 
         assert!(!handle.is_null());
@@ -725,7 +721,10 @@ mod tests {
             std::thread::sleep(std::time::Duration::from_millis(10));
         }
 
-        assert!(counter.load(Ordering::Relaxed) >= 1, "callback was not invoked within 1s");
+        assert!(
+            counter.load(Ordering::Relaxed) >= 1,
+            "callback was not invoked within 1s"
+        );
 
         unsafe { jhara_core_scan_free(handle) };
     }
@@ -742,6 +741,9 @@ mod tests {
 
     #[test]
     fn tree_physical_size_null_guard() {
-        assert_eq!(unsafe { jhara_core_tree_physical_size(ptr::null_mut(), ptr::null()) }, -1);
+        assert_eq!(
+            unsafe { jhara_core_tree_physical_size(ptr::null_mut(), ptr::null()) },
+            -1
+        );
     }
 }

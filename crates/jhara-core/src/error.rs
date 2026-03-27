@@ -30,14 +30,23 @@ pub enum JharaError {
 
 impl JharaError {
     pub fn io(path: impl Into<String>, source: std::io::Error) -> Self {
-        JharaError::Io { path: path.into(), source }
+        JharaError::Io {
+            path: path.into(),
+            source,
+        }
     }
 
     pub fn json(path: impl Into<String>, source: serde_json::Error) -> Self {
-        JharaError::Json { path: path.into(), source }
+        JharaError::Json {
+            path: path.into(),
+            source,
+        }
     }
 
     pub fn plist(path: impl Into<String>, source: plist::Error) -> Self {
-        JharaError::Plist { path: path.into(), source }
+        JharaError::Plist {
+            path: path.into(),
+            source,
+        }
     }
 }
