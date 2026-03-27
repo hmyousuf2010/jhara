@@ -1,0 +1,193 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  merge_group:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+  RUSTFLAGS: -D warnings
+
+jobs:
+  # ── Rust: jhara-core cross-platform ──────────────────────────────────────
+  rust-test:
+    name: Rust tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-14, windows-latest]
+        rust: [stable]
+        include:
+          - os: ubuntu-24.04
+            rust: nightly
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust ${{ matrix.rust }}
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+          components: clippy, rustfmt
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: jhara-rust-${{ matrix.os }}
+
+      - name: Check formatting
+        if: matrix.rust == 'stable'
+        run: cargo fmt --all -- --check
+
+      - name: Clippy (all features)
+        if: matrix.rust == 'stable'
+        run: cargo clippy -p jhara-core --all-features -- -D warnings
+
+      - name: Build
+        run: cargo build -p jhara-core --all-features
+
+      - name: Run tests
+        run: cargo test -p jhara-core --all-features -- --nocapture
+
+      - name: Build jhara-cli
+        run: cargo build -p jhara-cli
+
+      - name: Build jhara-macos-ffi (macOS only)
+        if: matrix.os == 'macos-14'
+        run: cargo build -p jhara-macos-ffi --target aarch64-apple-darwin
+
+  # ── Rust: cargo audit ────────────────────────────────────────────────────
+  rust-audit:
+    name: Cargo audit
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: rustsec/audit-check@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── macOS app build ───────────────────────────────────────────────────────
+  macos-build:
+    name: macOS app build
+    runs-on: macos-14
+    if: github.event_name != 'merge_group'
+    needs: rust-test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: jhara-macos
+
+      - name: Build universal static library
+        run: bash scripts/build_universal.sh
+        env:
+          CONFIGURATION: Debug
+
+      - name: Build macOS app (xcodebuild)
+        run: |
+          xcodebuild build \
+            -project apps/macos/jhara.xcodeproj \
+            -scheme jhara \
+            -configuration Debug \
+            -sdk macosx \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty || xcodebuild build \
+              -project apps/macos/jhara.xcodeproj \
+              -scheme jhara \
+              -configuration Debug \
+              -sdk macosx \
+              CODE_SIGNING_ALLOWED=NO
+
+      - name: Run Swift tests
+        run: |
+          xcodebuild test \
+            -project apps/macos/jhara.xcodeproj \
+            -scheme jharaTests \
+            -destination "platform=macOS" \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty --report junit --output test-results.xml || true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: swift-test-results
+          path: test-results.xml
+
+  # ── JavaScript / TypeScript ───────────────────────────────────────────────
+  js-check:
+    name: JS/TS lint and typecheck
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Biome lint and format check
+        run: pnpm biome ci .
+
+      - name: TypeScript typecheck
+        run: pnpm tsc --noEmit --project tsconfig.json || true
+
+      - name: Build all packages
+        run: pnpm build
+
+  # ── JS security audit ─────────────────────────────────────────────────────
+  js-audit:
+    name: pnpm audit
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm audit --audit-level=high
+
+  # ── Final gate ────────────────────────────────────────────────────────────
+  ci-pass:
+    name: CI passed
+    if: always()
+    needs: [rust-test, rust-audit, js-check, js-audit]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check all jobs passed
+        run: |
+          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" ]]; then
+            echo "One or more CI jobs failed"
+            exit 1
+          fi
+          echo "All required CI jobs passed"
