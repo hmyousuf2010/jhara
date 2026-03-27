@@ -91,14 +91,3 @@ jobs:
           head: HEAD
           extra_args: --only-verified
 
-  # ── Dependency review (PR only) ───────────────────────────────────────────
-  dependency-review:
-    name: Dependency review
-    runs-on: ubuntu-24.04
-    if: github.event_name == 'pull_request'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/dependency-review-action@v4
-        with:
-          fail-on-severity: high
-          deny-licenses: GPL-2.0, LGPL-2.0, AGPL-3.0

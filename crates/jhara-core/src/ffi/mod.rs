@@ -52,8 +52,6 @@ pub struct JharaScanHandle {
     pub cancelled: Arc<std::sync::atomic::AtomicBool>,
     /// Accumulated scan results, populated after the scan completes.
     results: Arc<std::sync::Mutex<Vec<types::ScanNodeOwned>>>,
-    /// Root paths for this scan session — used by jhara_core_projects_results_json.
-    root_paths: Arc<std::sync::Mutex<Vec<PathBuf>>>,
     /// The original callback function address (stored as usize for Send safety).
     pub callback_addr: usize,
     /// The original context pointer (stored as usize for Send safety).
@@ -146,9 +144,6 @@ pub unsafe extern "C" fn jhara_core_scan_start(
         _skip_list: skip_strings.clone(),
         cancelled:  Arc::new(std::sync::atomic::AtomicBool::new(false)),
         results:    Arc::new(std::sync::Mutex::new(Vec::new())),
-        root_paths: Arc::new(std::sync::Mutex::new(
-            root_strings.iter().map(PathBuf::from).collect()
-        )),
         callback_addr: callback as usize,
         context: ctx as usize,
     });

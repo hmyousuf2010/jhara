@@ -133,8 +133,16 @@ jobs:
 
   # ── JavaScript / TypeScript ───────────────────────────────────────────────
   js-check:
-    name: JS/TS lint and typecheck
+    name: JS/TS Quality
     runs-on: ubuntu-24.04
+    env:
+      NEXT_PUBLIC_SERVER_URL: http://localhost:3000
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/jhara
+      BETTER_AUTH_SECRET: a-very-long-secret-for-ci-validation-purposes-only
+      BETTER_AUTH_URL: http://localhost:3000
+      POLAR_ACCESS_TOKEN: temp_token
+      POLAR_SUCCESS_URL: http://localhost:3000
+      CORS_ORIGIN: http://localhost:3000
     steps:
       - uses: actions/checkout@v4
 
