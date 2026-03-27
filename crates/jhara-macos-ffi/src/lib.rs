@@ -83,3 +83,10 @@ pub unsafe extern "C" fn jhara_core_global_caches_json(
 ) -> *mut c_char {
     ffi::jhara_core_global_caches_json(handle, home_dir)
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn jhara_core_orphan_scan_json(
+    handle: *const JharaScanHandle,
+) -> *mut c_char {
+    ffi::jhara_core_orphan_scan_json(handle)
+}

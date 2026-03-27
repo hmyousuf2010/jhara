@@ -577,6 +577,99 @@ pub unsafe extern "C" fn jhara_core_global_caches_json(
     }
 }
 
+/// Returns a JSON array of Intel (x86_64) artifacts found on Apple Silicon —
+/// i.e. paths under `/usr/local/` that only exist for Rosetta/Intel Homebrew.
+///
+/// These are Safe-tier: deleting them never affects native arm64 toolchains.
+/// Physical sizes are back-filled from the scan-tree results.
+/// Caller must free the returned string with `jhara_core_string_free`.
+/// Returns null on any error or if no orphans are found.
+///
+/// # Safety
+/// `handle` must be a valid non-null pointer from `jhara_core_scan_start`.
+// #[no_mangle] — exported via jhara-macos-ffi shim only
+pub unsafe extern "C" fn jhara_core_orphan_scan_json(
+    handle: *const JharaScanHandle,
+) -> *mut c_char {
+    if handle.is_null() {
+        return ptr::null_mut();
+    }
+    let h = &*handle;
+
+    // Intel Homebrew lives under /usr/local/ on x86_64 Macs.
+    // On Apple Silicon these paths are Rosetta-only; native arm64 Homebrew
+    // installs to /opt/homebrew/. Anything under /usr/local/Cellar,
+    // /usr/local/opt, /usr/local/lib, /usr/local/bin is safe to remove
+    // once the user has migrated to arm64 Homebrew.
+    const INTEL_PREFIXES: &[&str] = &[
+        "/usr/local/Cellar/",
+        "/usr/local/opt/",
+        "/usr/local/lib/",
+        "/usr/local/bin/",
+    ];
+
+    let results_guard = match h.results.lock() {
+        Ok(g)  => g,
+        Err(_) => return ptr::null_mut(),
+    };
+
+    // Collect all nodes that fall under an Intel prefix, summing their
+    // physical sizes. We group by the top-level entry under /usr/local/
+    // (e.g. /usr/local/Cellar/node) so the UI shows one artifact per
+    // formula rather than thousands of individual files.
+    let mut grouped: std::collections::HashMap<String, i64> = std::collections::HashMap::new();
+    for node in results_guard.iter() {
+        let is_intel = INTEL_PREFIXES.iter().any(|prefix| node.path.starts_with(prefix));
+        if !is_intel {
+            continue;
+        }
+        // Key = the first two path components after /usr/local/
+        // e.g. "/usr/local/Cellar/node/20.0.0/bin/node" → "/usr/local/Cellar/node"
+        let parts: Vec<&str> = node.path.splitn(6, '/').collect();
+        // parts: ["", "usr", "local", "Cellar", "node", ...]
+        let key = if parts.len() >= 5 {
+            format!("/{}/{}/{}/{}", parts[1], parts[2], parts[3], parts[4])
+        } else {
+            node.path.clone()
+        };
+        *grouped.entry(key).or_insert(0) += node.physical_size;
+    }
+    drop(results_guard);
+
+    if grouped.is_empty() {
+        return ptr::null_mut();
+    }
+
+    // Build FoundArtifact-compatible JSON objects so Swift can decode them
+    // with the same FoundArtifactDecoded struct it uses for projects/caches.
+    let artifacts: Vec<serde_json::Value> = grouped
+        .into_iter()
+        .map(|(path, size)| {
+            let name = std::path::Path::new(&path)
+                .file_name()
+                .map(|n| n.to_string_lossy().into_owned())
+                .unwrap_or_else(|| path.clone());
+            serde_json::json!({
+                "absolute_path":       path,
+                "safety_tier":         "safe",
+                "physical_size_bytes": size,
+                "recovery_command":    "brew install --formula <name>  # after migrating to arm64 Homebrew",
+                "is_ghost":            false,
+                "ecosystem":           "homebrew_intel",
+                "name":                name,
+            })
+        })
+        .collect();
+
+    match serde_json::to_string(&artifacts) {
+        Ok(json) => match std::ffi::CString::new(json) {
+            Ok(cs) => cs.into_raw(),
+            Err(_) => ptr::null_mut(),
+        },
+        Err(_) => ptr::null_mut(),
+    }
+}
+
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]

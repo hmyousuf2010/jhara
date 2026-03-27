@@ -1,6 +1,7 @@
 import { cn } from "@jhara/ui/lib/utils";
 import * as React from "react";
 
+// biome-ignore lint/a11y/noLabelWithoutControl: Reusable primitive spread props.
 function Label({ className, ...props }: React.ComponentProps<"label">) {
   return (
     <label
