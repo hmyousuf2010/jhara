@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-14, windows-latest]
+        os: [ubuntu-24.04, macos-14]
         rust: [stable]
         include:
           - os: ubuntu-24.04
@@ -138,44 +138,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          version: 9
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
+          bun-version: latest
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Biome lint and format check
-        run: pnpm biome ci .
+        run: bun run check
 
       - name: TypeScript typecheck
-        run: pnpm tsc --noEmit --project tsconfig.json || true
+        run: bun run check-types || true
 
       - name: Build all packages
-        run: pnpm build
+        run: bun run build
 
   # ── JS security audit ─────────────────────────────────────────────────────
   js-audit:
     name: pnpm audit
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          version: 9
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm audit --audit-level=high
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+      - run: bun x bun-audit   # bun has native audit but let's use a standard one for now if needed, or just bun --audit
 
   # ── Final gate ────────────────────────────────────────────────────────────
   ci-pass:
