@@ -175,7 +175,7 @@ jobs:
           bun-version: latest
 
       - run: bun install --frozen-lockfile
-      - run: bun x bun-audit
+      - run: bun audit
 
   # ── Final gate ────────────────────────────────────────────────────────────
   ci-pass:

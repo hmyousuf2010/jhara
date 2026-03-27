@@ -44,8 +44,15 @@ jobs:
           # Build the Rust library so Xcode can compile
           bash scripts/build_universal.sh || true
 
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
+      - name: Build Swift for CodeQL
+        if: matrix.language == 'swift'
+        run: |
+          xcodebuild build \
+            -project apps/macos/jhara.xcodeproj \
+            -scheme jhara \
+            -configuration Debug \
+            -sdk macosx \
+            CODE_SIGNING_ALLOWED=NO
 
       - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@v3
