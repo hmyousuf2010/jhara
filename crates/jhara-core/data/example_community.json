@@ -1,59 +1,59 @@
 [
-  {
-    "filename": "gleam.toml",
-    "ecosystem": "gleam",
-    "artifact_paths": [
-      {
-        "relative_path": "build",
-        "safety_tier": "safe",
-        "recovery_command": "gleam build",
-        "typical_size_mb_min": 10,
-        "typical_size_mb_max": 500
-      }
-    ],
-    "stale_threshold_days": 30
-  },
-  {
-    "filename": "v.mod",
-    "ecosystem": "vlang",
-    "artifact_paths": [
-      {
-        "relative_path": ".v",
-        "safety_tier": "safe",
-        "recovery_command": "v ."
-      }
-    ],
-    "stale_threshold_days": 30
-  },
-  {
-    "filename": "odin.odin",
-    "ecosystem": "odin",
-    "artifact_paths": [
-      {
-        "relative_path": "build",
-        "safety_tier": "safe",
-        "recovery_command": "odin build ."
-      }
-    ],
-    "stale_threshold_days": 30
-  },
-  {
-    "filename": "Pipfile",
-    "ecosystem": "pipenv",
-    "artifact_paths": [
-      {
-        "relative_path": ".venv",
-        "safety_tier": "safe",
-        "recovery_command": "pipenv install",
-        "typical_size_mb_min": 100,
-        "typical_size_mb_max": 2048
-      },
-      {
-        "relative_path": "__pycache__",
-        "safety_tier": "safe",
-        "recovery_command": "python (auto-generated)"
-      }
-    ],
-    "stale_threshold_days": 45
-  }
+	{
+		"filename": "gleam.toml",
+		"ecosystem": "gleam",
+		"artifact_paths": [
+			{
+				"relative_path": "build",
+				"safety_tier": "safe",
+				"recovery_command": "gleam build",
+				"typical_size_mb_min": 10,
+				"typical_size_mb_max": 500
+			}
+		],
+		"stale_threshold_days": 30
+	},
+	{
+		"filename": "v.mod",
+		"ecosystem": "vlang",
+		"artifact_paths": [
+			{
+				"relative_path": ".v",
+				"safety_tier": "safe",
+				"recovery_command": "v ."
+			}
+		],
+		"stale_threshold_days": 30
+	},
+	{
+		"filename": "odin.odin",
+		"ecosystem": "odin",
+		"artifact_paths": [
+			{
+				"relative_path": "build",
+				"safety_tier": "safe",
+				"recovery_command": "odin build ."
+			}
+		],
+		"stale_threshold_days": 30
+	},
+	{
+		"filename": "Pipfile",
+		"ecosystem": "pipenv",
+		"artifact_paths": [
+			{
+				"relative_path": ".venv",
+				"safety_tier": "safe",
+				"recovery_command": "pipenv install",
+				"typical_size_mb_min": 100,
+				"typical_size_mb_max": 2048
+			},
+			{
+				"relative_path": "__pycache__",
+				"safety_tier": "safe",
+				"recovery_command": "python (auto-generated)"
+			}
+		],
+		"stale_threshold_days": 45
+	}
 ]

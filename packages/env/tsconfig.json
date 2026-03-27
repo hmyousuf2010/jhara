@@ -1,3 +1,3 @@
 {
-  "extends": "@jhara/config/tsconfig.base.json"
+	"extends": "@jhara/config/tsconfig.base.json"
 }

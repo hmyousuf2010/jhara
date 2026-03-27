@@ -65,4 +65,6 @@ char *jhara_core_projects_results_json(const JharaScanHandle *handle);
 
 char *jhara_core_global_caches_json(const JharaScanHandle *handle, const char *home_dir);
 
+char *jhara_core_orphan_scan_json(const JharaScanHandle *handle);
+
 #endif /* JHARA_CORE_H */
