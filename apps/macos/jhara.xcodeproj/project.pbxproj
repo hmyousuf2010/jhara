@@ -29,6 +29,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A94CD92B2F76757700DF4249 /* jhara.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = jhara.xcodeproj; sourceTree = "<group>"; };
 		A9568D7E2F73C54000F945B4 /* jhara.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = jhara.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A9568D8B2F73C54100F945B4 /* jharaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = jharaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A9568D952F73C54100F945B4 /* jharaUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = jharaUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -94,6 +95,13 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		A94CD9452F76757700DF4249 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		A9568D752F73C54000F945B4 = {
 			isa = PBXGroup;
 			children = (
@@ -121,13 +129,6 @@
 				A9A436132F758F1200DABD54 /* libjhara_universal.a */,
 			);
 			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		A9F28ADA2F76311700C4A704 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -241,6 +242,10 @@
 			productRefGroup = A9568D7F2F73C54000F945B4 /* Products */;
 			projectDirPath = "";
 			projectReferences = (
+				{
+					ProductGroup = A94CD9452F76757700DF4249 /* Products */;
+					ProjectRef = A94CD92B2F76757700DF4249 /* jhara.xcodeproj */;
+				},
 			);
 			projectRoot = "";
 			targets = (
@@ -493,7 +498,7 @@
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = "$(SRCROOT)/include/JharaApp-Bridging-Header.h";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
