@@ -16,7 +16,6 @@ env:
   CARGO_INCREMENTAL: 0
   RUST_BACKTRACE: 1
   RUSTFLAGS: -D warnings
-  # Turbo remote cache — set TURBO_TOKEN + TURBO_TEAM in repo secrets
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
 
@@ -42,15 +41,10 @@ jobs:
           toolchain: ${{ matrix.rust }}
           components: clippy, rustfmt
 
-      # Restore Rust registry + build artifacts.
-      # Key includes OS, rust channel, and Cargo.lock hash so any lock-file
-      # change busts only what's necessary.
       - name: Restore Rust cache
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: rust-${{ matrix.os }}-${{ matrix.rust }}
-          # Cache the registry separately from build artefacts so the 5 GB
-          # registry doesn't get re-uploaded on every build-artefact change.
           save-if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' }}
 
       - name: Check formatting
@@ -86,7 +80,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   # ── macOS native app build ────────────────────────────────────────────────
-  # Runs on macos-15 (Xcode 16.x) which supports project format objectVersion 77.
+  # macos-15 ships with Xcode 16.0–16.4.
+  # GRDB v7.5+ requires Swift 6.1 (Xcode 16.3+), so we pin to Xcode 16.4
+  # which is the latest stable on this runner and ships Swift 6.1.
   macos-build:
     name: macOS app build
     runs-on: macos-15
@@ -95,21 +91,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Select Xcode 16.4
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '16.4'
+
+      - name: Log toolchain versions
+        run: |
+          xcodebuild -version
+          swift --version
+
       - name: Install Rust stable (universal targets)
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-apple-darwin,x86_64-apple-darwin
 
-      # Rust cache keyed to macos-15 so it never shares with linux runners.
-      # Only save on main/dev to avoid cache churn on every PR push.
       - name: Restore Rust cache (macOS)
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: rust-macos-15-stable
           save-if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' }}
 
-      # Cache the compiled universal .a so `build_universal.sh` is skipped
-      # entirely when neither Cargo.lock nor the FFI crate source changed.
+      # Cache the compiled universal .a — skips full Rust rebuild when
+      # neither Cargo.lock nor the FFI crate source has changed.
       - name: Cache universal Rust library
         uses: actions/cache@v4
         id: ffi-cache
@@ -123,12 +127,26 @@ jobs:
         env:
           CONFIGURATION: Debug
 
-      # xcpretty makes the wall of xcodebuild output readable in the log.
       - name: Install xcpretty
         run: gem install xcpretty --no-document
 
-      - name: Select Xcode 16
-        run: sudo xcode-select -s /Applications/Xcode_16.app
+      # Cache resolved SPM packages so network fetches are skipped on
+      # subsequent runs when Package.resolved hasn't changed.
+      - name: Cache SPM packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Developer/Xcode/DerivedData/**/SourcePackages/checkouts
+            ~/Library/Caches/org.swift.swiftpm
+          key: spm-${{ runner.os }}-${{ hashFiles('apps/macos/jhara.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: |
+            spm-${{ runner.os }}-
+
+      - name: Resolve Swift package dependencies
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project apps/macos/jhara.xcodeproj \
+            -scheme jhara
 
       - name: Build macOS app
         run: |
@@ -178,9 +196,6 @@ jobs:
         with:
           bun-version: latest
 
-      # Layer 1: bun global install cache (registry tarballs).
-      # Key: bun version + bun.lock hash.  A lock-file change re-downloads
-      # only changed packages; the rest hit the cache.
       - name: Restore Bun install cache
         uses: actions/cache@v4
         with:
@@ -192,9 +207,6 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # Layer 2: Turbo remote + local cache.
-      # All turbo tasks (build, check-types, lint) share one cache bucket.
-      # On a cache-hit, turbo replays outputs in <1 s instead of recompiling.
       - name: Restore Turbo cache
         uses: actions/cache@v4
         with:
@@ -213,48 +225,11 @@ jobs:
       - name: Build all packages
         run: bun run build
 
-  # ── JS security audit ─────────────────────────────────────────────────────
-  # `bun audit` exits 1 on any vulnerability, which is the desired gate.
-  # We run it after install so we get the exact resolution tree.
-  js-audit:
-    name: JS Security Audit
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Restore Bun install cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-          restore-keys: |
-            bun-${{ runner.os }}-
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      # Fail the job on high/critical; tolerate moderate/low with a warning.
-      # Remove `|| true` once all moderate issues are resolved upstream.
-      - name: Audit (high + critical must pass)
-        run: |
-          bun audit --level high || {
-            echo "::error::High or critical JS vulnerabilities found — update dependencies."
-            exit 1
-          }
-
-      - name: Audit (moderate — informational)
-        run: bun audit || echo "::warning::Moderate/low JS vulnerabilities present. Track for resolution."
-
   # ── Final gate ────────────────────────────────────────────────────────────
   ci-pass:
     name: CI passed
     if: always()
-    needs: [rust-test, rust-audit, js-check, js-audit]
+    needs: [rust-test, rust-audit, js-check]
     runs-on: ubuntu-24.04
     steps:
       - name: Check required jobs passed

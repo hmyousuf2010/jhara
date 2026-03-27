@@ -296,6 +296,7 @@ public final class AppState {
             return Artifact(
                 id:           UUID(),
                 path:         fa.absolute_path,
+
                 name:         URL(fileURLWithPath: fa.absolute_path).lastPathComponent,
                 size:         fa.physical_size_bytes,
                 tier:         tier,
