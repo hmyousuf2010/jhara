@@ -113,12 +113,11 @@ unsafe fn c_string_array(ptr: *const *const c_char, count: usize) -> Vec<String>
 /// - `roots` is null or `root_count` is zero
 /// - Memory allocation fails
 ///
-/// The caller must eventually call `jhara_core_scan_free` on the returned handle.
-///
 /// # Safety
-/// All pointer parameters must satisfy their documented invariants.
-/// The `callback` must be thread-safe (may be called from multiple threads).
-// #[no_mangle] — exported via jhara-macos-ffi shim only
+///
+/// `roots` and `skip_list` must be valid arrays of null-terminated C strings.
+/// The caller must eventually free the returned handle via `jhara_core_scan_free`.
+#[no_mangle]
 pub unsafe extern "C" fn jhara_core_scan_start(
     roots: *const *const c_char,
     root_count: usize,
@@ -289,10 +288,27 @@ pub unsafe extern "C" fn jhara_core_scan_start(
 /// scan (no-op).
 ///
 /// # Safety
-/// `handle` must be a valid pointer returned by `jhara_scan_start` that has
-/// not yet been freed via `jhara_scan_free`.
-// #[no_mangle] — exported via jhara-macos-ffi shim only
+///
+/// `handle` must be a valid pointer from `jhara_core_scan_start`.
+#[no_mangle]
 pub unsafe extern "C" fn jhara_core_scan_cancel(handle: *mut JharaScanHandle) {
+    if handle.is_null() {
+        return;
+    }
+    (*handle)
+        .cancelled
+        .store(true, std::sync::atomic::Ordering::Relaxed);
+}
+
+/// Cancels an in-progress scan.
+///
+/// This is a fast, asynchronous request. The scan thread will check the
+/// cancellation flag at the start of each directory walk and exit early.
+///
+/// # Safety
+/// `handle` must be a valid pointer from `jhara_core_scan_start`.
+#[no_mangle]
+pub unsafe extern "C" fn jhara_core_scan_stop(handle: *mut JharaScanHandle) {
     if handle.is_null() {
         return;
     }
@@ -307,9 +323,8 @@ pub unsafe extern "C" fn jhara_core_scan_cancel(handle: *mut JharaScanHandle) {
 /// Passing a null pointer is a safe no-op.
 ///
 /// # Safety
-/// `handle` must be either null or a valid pointer returned by
-/// `jhara_scan_start` that has not previously been freed.
-// #[no_mangle] — exported via jhara-macos-ffi shim only
+/// `handle` must be a valid pointer to a `JharaScanHandle` created by `jhara_core_scan_start`.
+#[no_mangle]
 pub unsafe extern "C" fn jhara_core_scan_free(handle: *mut JharaScanHandle) {
     if handle.is_null() {
         return;
@@ -326,9 +341,10 @@ pub unsafe extern "C" fn jhara_core_scan_free(handle: *mut JharaScanHandle) {
 /// - `-1`   — `handle` or `path` is null, path not found, or scan incomplete
 ///
 /// # Safety
+///
 /// `handle` must be a valid, non-freed handle.
 /// `path` must be a valid NUL-terminated C string or null.
-// #[no_mangle] — exported via jhara-macos-ffi shim only
+#[no_mangle]
 pub unsafe extern "C" fn jhara_core_tree_physical_size(
     handle: *mut JharaScanHandle,
     path: *const c_char,
@@ -358,16 +374,10 @@ pub unsafe extern "C" fn jhara_core_tree_physical_size(
 
 // ── Classification & Deletion ────────────────────────────────────────────────
 
-/// Deletes a list of absolute paths permanently.
-///
-/// ## Returns
-/// - `0` on success
-/// - `-1` if `paths` is null or `count` is 0
-/// - `> 0` total number of errors encountered during deletion
-///
 /// # Safety
-/// `paths` must be a valid array of NUL-terminated strings.
-// #[no_mangle] — exported via jhara-macos-ffi shim only
+///
+/// `paths` must be valid null-terminated C strings.
+#[no_mangle]
 pub unsafe extern "C" fn jhara_core_delete_paths(paths: *const *const c_char, count: usize) -> i32 {
     if paths.is_null() || count == 0 {
         return -1;
@@ -382,9 +392,10 @@ pub unsafe extern "C" fn jhara_core_delete_paths(paths: *const *const c_char, co
     }
 }
 
-/// Classifies a project at the given root.
-/// Returns a JSON string (caller must free with `jhara_core_string_free`).
-// #[no_mangle] — exported via jhara-macos-ffi shim only
+/// # Safety
+///
+/// `project_root` must be a valid NUL-terminated C string.
+#[no_mangle]
 pub unsafe extern "C" fn jhara_core_project_classify(project_root: *const c_char) -> *mut c_char {
     let root_str = match c_str_to_string(project_root) {
         Some(s) => s,
@@ -419,7 +430,10 @@ pub unsafe extern "C" fn jhara_core_project_classify(project_root: *const c_char
 }
 
 /// Frees a string allocated by the core library (e.g. from `jhara_core_project_classify`).
-// #[no_mangle] — exported via jhara-macos-ffi shim only
+///
+/// # Safety
+/// `s` must be a valid pointer to a C string allocated by `jhara-core`.
+#[no_mangle]
 pub unsafe extern "C" fn jhara_core_string_free(s: *mut c_char) {
     if s.is_null() {
         return;
@@ -436,8 +450,9 @@ pub unsafe extern "C" fn jhara_core_string_free(s: *mut c_char) {
 /// Returns null on any error.
 ///
 /// # Safety
+///
 /// `handle` must be a valid non-null pointer from `jhara_core_scan_start`.
-// #[no_mangle] — exported via jhara-macos-ffi shim only
+#[no_mangle]
 pub unsafe extern "C" fn jhara_core_projects_results_json(
     handle: *const JharaScanHandle,
 ) -> *mut c_char {
@@ -523,7 +538,7 @@ pub unsafe extern "C" fn jhara_core_projects_results_json(
 /// # Safety
 /// `handle` must be a valid non-null pointer from `jhara_core_scan_start`.
 /// `home_dir` must be a valid NUL-terminated UTF-8 C string.
-// #[no_mangle] — exported via jhara-macos-ffi shim only
+#[no_mangle]
 pub unsafe extern "C" fn jhara_core_global_caches_json(
     handle: *const JharaScanHandle,
     home_dir: *const c_char,
@@ -583,7 +598,7 @@ pub unsafe extern "C" fn jhara_core_global_caches_json(
 ///
 /// # Safety
 /// `handle` must be a valid non-null pointer from `jhara_core_scan_start`.
-// #[no_mangle] — exported via jhara-macos-ffi shim only
+#[no_mangle]
 pub unsafe extern "C" fn jhara_core_orphan_scan_json(
     handle: *const JharaScanHandle,
 ) -> *mut c_char {

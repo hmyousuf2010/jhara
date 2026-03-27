@@ -94,11 +94,8 @@ impl SignatureIndex {
     /// Returns all signatures whose filename matches `name`, ordered by
     /// priority descending (highest priority = most specific match wins).
     fn matches(&self, name: &str) -> Vec<&'static ProjectSignature> {
-        let mut results: Vec<&'static ProjectSignature> = self
-            .exact
-            .get(name)
-            .map(|v| v.iter().copied().collect())
-            .unwrap_or_default();
+        let mut results: Vec<&'static ProjectSignature> =
+            self.exact.get(name).map(|v| v.to_vec()).unwrap_or_default();
 
         for (ext, sig) in &self.suffix {
             if name.ends_with(ext) {

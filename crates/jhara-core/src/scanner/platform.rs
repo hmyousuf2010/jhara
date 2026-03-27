@@ -66,7 +66,7 @@ pub fn file_identity(_meta: &Metadata) -> FileIdentity {
 pub fn physical_size(_path: &Path, meta: &Metadata) -> u64 {
     use std::os::unix::fs::MetadataExt;
     // st_blocks is in 512-byte units, regardless of filesystem block size.
-    (meta.blocks() * 512) as u64
+    meta.blocks() * 512
 }
 
 #[cfg(windows)]

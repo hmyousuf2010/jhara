@@ -17,14 +17,6 @@ allow = [
     "Zlib",
     "MPL-2.0",
 ]
-# These need explicit exceptions
-deny = [
-    "GPL-2.0",
-    "GPL-3.0",
-    "LGPL-2.0",
-    "LGPL-2.1",
-    "AGPL-3.0",
-]
 # Confidence threshold for license detection
 confidence-threshold = 0.8
 

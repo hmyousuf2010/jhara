@@ -35,7 +35,7 @@ pub fn discover_ghosts(root: &Path) -> Vec<GhostCandidate> {
 
 fn from_git_history(root: &Path) -> Result<Vec<GhostCandidate>, std::io::Error> {
     let output = Command::new("git")
-        .args(&["log", "--diff-filter=D", "--summary", "--pretty=format:"])
+        .args(["log", "--diff-filter=D", "--summary", "--pretty=format:"])
         .current_dir(root)
         .output()?;
 
