@@ -1,1 +1,2 @@
-lint-staged
+npx lint-staged
+cargo check -p jhara-core
