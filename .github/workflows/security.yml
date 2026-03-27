@@ -6,47 +6,98 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    # Run weekly on Monday at 09:00 UTC
     - cron: '0 9 * * 1'
 
+# Least-privilege defaults; individual jobs escalate only what they need.
 permissions:
   contents: read
-  security-events: write
-  actions: read
 
 jobs:
-  # ── CodeQL analysis ───────────────────────────────────────────────────────
-  codeql:
-    name: CodeQL (${{ matrix.language }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - language: swift
-            os: macos-14
-          - language: javascript-typescript
-            os: ubuntu-24.04
+  # ── CodeQL ────────────────────────────────────────────────────────────────
+  # Split into two separate jobs so a Swift build failure doesn't block JS
+  # analysis (and vice-versa), and both can run in parallel.
+  codeql-js:
+    name: CodeQL (javascript-typescript)
+    runs-on: ubuntu-24.04
+    # CodeQL SARIF upload requires write on security-events.
+    # For PRs from forks this permission is NOT granted; skip gracefully.
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    # Skip on fork PRs — they don't have security-events write permission.
+    if: >
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - uses: actions/checkout@v4
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages: ${{ matrix.language }}
+          languages: javascript-typescript
           queries: security-extended
 
-      - name: Setup for Swift analysis
-        if: matrix.language == 'swift'
-        run: |
-          # Install Rust targets needed for the build script
-          rustup target add aarch64-apple-darwin x86_64-apple-darwin
-          # Build the Rust library so Xcode can compile
-          bash scripts/build_universal.sh || true
+      # Let CodeQL auto-build (no compilation step needed for JS/TS).
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:javascript-typescript
+
+  codeql-swift:
+    name: CodeQL (swift)
+    runs-on: macos-15
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    if: >
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 16
+        run: sudo xcode-select -s /Applications/Xcode_16.app
+
+      - name: Install Rust (universal targets)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      # Restore the Rust cache so the FFI library doesn't rebuild from scratch.
+      - name: Restore Rust cache (macOS)
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-macos-15-stable
+          save-if: false
+
+      # Restore the pre-built universal .a if nothing relevant changed.
+      - name: Cache universal Rust library
+        uses: actions/cache@v4
+        id: ffi-cache
+        with:
+          path: apps/macos/lib/libjhara_universal.a
+          key: ffi-universal-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'crates/jhara-macos-ffi/**') }}
+
+      - name: Build universal Rust library
+        if: steps.ffi-cache.outputs.cache-hit != 'true'
+        run: bash scripts/build_universal.sh || true
+        env:
+          CONFIGURATION: Debug
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: swift
+          queries: security-extended
 
       - name: Build Swift for CodeQL
-        if: matrix.language == 'swift'
         run: |
+          set -o pipefail
           xcodebuild build \
             -project apps/macos/jhara.xcodeproj \
             -scheme jhara \
@@ -57,12 +108,14 @@ jobs:
       - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@v3
         with:
-          category: /language:${{ matrix.language }}
+          category: /language:swift
 
-  # ── Rust: cargo audit ────────────────────────────────────────────────────
+  # ── Cargo advisory check ──────────────────────────────────────────────────
   rust-audit:
     name: Rust advisory check
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -70,10 +123,12 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-  # ── Rust: cargo deny (license + advisories + bans) ───────────────────────
+  # ── Cargo deny (licenses, bans, advisories) ───────────────────────────────
   cargo-deny:
     name: Cargo deny
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: EmbarkStudios/cargo-deny-action@v2
@@ -81,10 +136,12 @@ jobs:
           command: check
           arguments: --all-features
 
-  # ── Secret scanning (truffleHog) ──────────────────────────────────────────
+  # ── Secret scanning ───────────────────────────────────────────────────────
   secret-scan:
     name: Secret scan
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -97,4 +154,3 @@ jobs:
           base: ${{ github.event.repository.default_branch }}
           head: HEAD
           extra_args: --only-verified
-

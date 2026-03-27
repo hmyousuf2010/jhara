@@ -12,9 +12,11 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
 
 jobs:
-  # ── Validate tag format ───────────────────────────────────────────────────
+  # ── Validate tag ──────────────────────────────────────────────────────────
   validate:
     name: Validate release tag
     runs-on: ubuntu-24.04
@@ -40,23 +42,41 @@ jobs:
     uses: ./.github/workflows/ci.yml
 
   # ── Build macOS app ───────────────────────────────────────────────────────
+  # macos-15 ships with Xcode 16 which supports project objectVersion 77.
   build-macos:
     name: Build macOS app
-    runs-on: macos-14
+    runs-on: macos-15
     needs: ci
     environment: release
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust stable
+      - name: Select Xcode 16
+        run: sudo xcode-select -s /Applications/Xcode_16.app
+
+      - name: Install Rust stable (universal targets)
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-apple-darwin,x86_64-apple-darwin
 
-      - name: Cache Rust
+      - name: Restore Rust cache (macOS release)
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: jhara-release-macos
+          shared-key: rust-macos-15-release
+          save-if: true
+
+      - name: Cache universal Rust library
+        uses: actions/cache@v4
+        id: ffi-cache
+        with:
+          path: apps/macos/lib/libjhara_universal.a
+          key: ffi-universal-release-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'crates/jhara-macos-ffi/**') }}
+
+      - name: Build universal Rust library (release)
+        if: steps.ffi-cache.outputs.cache-hit != 'true'
+        run: bash scripts/build_universal.sh
+        env:
+          CONFIGURATION: Release
 
       - name: Import Developer ID certificate
         uses: apple-actions/import-codesign-certs@v3
@@ -64,13 +84,12 @@ jobs:
           p12-file-base64: ${{ secrets.DEVELOPER_ID_CERT_P12_BASE64 }}
           p12-password: ${{ secrets.DEVELOPER_ID_CERT_PASSWORD }}
 
-      - name: Build universal Rust library (release)
-        run: bash scripts/build_universal.sh
-        env:
-          CONFIGURATION: Release
+      - name: Install xcpretty
+        run: gem install xcpretty --no-document
 
       - name: Build macOS app (archive)
         run: |
+          set -o pipefail
           xcodebuild archive \
             -project apps/macos/jhara.xcodeproj \
             -scheme jhara \
@@ -78,7 +97,8 @@ jobs:
             -archivePath jhara.xcarchive \
             DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
             CODE_SIGN_IDENTITY="Developer ID Application" \
-            CODE_SIGN_STYLE=Manual
+            CODE_SIGN_STYLE=Manual \
+            | xcpretty
 
       - name: Export archive
         run: |
@@ -152,10 +172,11 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Cache Rust
+      - name: Restore Rust cache (Linux release)
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: jhara-release-linux
+          shared-key: rust-linux-release
+          save-if: true
 
       - name: Install Tauri system dependencies
         run: |
@@ -170,6 +191,14 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
+      - name: Restore Bun install cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
 
       - name: Install JS dependencies
         run: bun install --frozen-lockfile
@@ -201,15 +230,24 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Cache Rust
+      - name: Restore Rust cache (Windows release)
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: jhara-release-windows
+          shared-key: rust-windows-release
+          save-if: true
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
+      - name: Restore Bun install cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
 
       - name: Install JS dependencies
         run: bun install --frozen-lockfile
