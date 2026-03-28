@@ -1,0 +1,11 @@
+{
+	"name": "Jhara (ঝরা)",
+	"short_desc": "A disk cleaner for developers that actually understands what it's looking at.",
+	"long_desc": "Jhara is a disk cleaner built on one idea: developer disks fill up in predictable, structured ways. Where a general disk analyzer sees an opaque directory tree, Jhara sees a Rust project with a stale `target/` folder, a Node monorepo with hoisted `node_modules`, or an Xcode workspace accumulating DerivedData for years.\n\n### How it works\n1. **Project Detection:** Written in Rust, using `jwalk` for parallel traversal. On macOS, a Swift layer pre-scans directories to avoid destructive side effects on iCloud-managed paths.\n2. **Safety Classification:** Artifacts are tiered (Safe, Caution, Risky) before anything happens.\n3. **Staleness Analysis:** Jhara determines staleness by looking at modification times of project descriptors and `.git/HEAD`.",
+	"logo": {
+		"dark": "https://raw.githubusercontent.com/hmyousuf/jhara/main/.github/assets/logo_dark.png",
+		"light": "https://raw.githubusercontent.com/hmyousuf/jhara/main/.github/assets/logo_light.png",
+		"alt": "Jhara Logo - A stylized falling leaf representing disk cleanup"
+	},
+	"priority": 1
+}
