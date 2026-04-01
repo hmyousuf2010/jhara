@@ -2,7 +2,7 @@
   <h1>Jhara (ঝরা)</h1>
   <p><b>A disk cleaner for developers that actually understands what it's looking at.</b></p>
 
-  [![Status](https://img.shields.io/badge/Status-Pre--Alpha%20%2F%20Under%20Development-red.svg)](#development-status)
+  [![Status](https://img.shields.io/badge/Status-Alpha%20%2F%20In%20Development-orange.svg)](#development-status)
   [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg?logo=apache)](LICENSE)
   <br />
   [![Rust](https://img.shields.io/badge/Rust-1.77%2B-orange?logo=rust&logoColor=white)](#)
@@ -21,7 +21,16 @@ Jhara is a disk cleaner built on one idea: developer disks fill up in predictabl
 
 The name comes from the Bengali word ঝরা, meaning to shed or fall away. Like leaves at the end of a season.
 
-> **Status:** Early development. The monorepo scaffold, web dashboard, and macOS app shell exist. The Rust core is under active development. If you're here to use the tool, check back in a few months. If you're here to contribute, the roadmap says exactly what needs doing.
+> [!NOTE]
+> **Status:** Paused for exams. 
+> 
+> To be totally honest, Jhara isn't ready for an MVP. I had to drop everything for my exams. That means the `main` branch might be broken right now. 
+> 
+> Here's what's actually built, though to be clear, the whole thing is currently broken and might not even run. The Rust scanner, ecosystem detection, and the SwiftUI app are technically done. But the background automation is just a pile of draft files. I haven't even started the Windows and Linux apps. Most importantly, the core scanner hasn't been battle-tested enough for me to guarantee it won't delete something it shouldn't. 
+> 
+> Don't run this on a drive you care about yet. 
+> 
+> Also, please don't open any PRs right now. I'm completely offline and won't be able to review them. Just check back in a few months when I'm active again.
 
 
 ## Table of contents
